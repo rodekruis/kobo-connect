@@ -25,15 +25,6 @@ logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
 from dotenv import load_dotenv
 load_dotenv()
-openai.api_type = "azure"
-openai.api_base = "https://510-openai.openai.azure.com/"
-openai.api_version = "2022-12-01"
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-default_instructions = "Explain what this project is about and what is the role of 510. Use maximum 100 words."
-admin_key = str(os.getenv('ADMIN_KEY')).strip()
-api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
-
 
 # async def get_api_key(api_key_header: str = Security(api_key_header)):
 #     if api_key_header == admin_key:
@@ -78,6 +69,9 @@ async def docs_redirect():
 @app.post("/kobo")
 async def post_submission(request: Request):
     """post a Kobo submission."""
+    request = request.json()
+    print(request)
+    logging.warning(f"{request}")
     return JSONResponse(status_code=200, content=request.json())
 
 
