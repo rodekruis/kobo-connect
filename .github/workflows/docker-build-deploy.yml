@@ -34,14 +34,10 @@ jobs:
       with:
         push: true
         tags: 510emergencies.azurecr.io/kobo-connect:${{ github.sha }}
-        file: kobo-connect/Dockerfile
-        context: ./kobo-connect
+        file: Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./kobo-connect
     needs: build
     environment:
       name: 'production'
