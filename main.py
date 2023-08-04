@@ -69,10 +69,10 @@ async def docs_redirect():
 @app.post("/kobo")
 async def post_submission(request: Request):
     """post a Kobo submission."""
-    request = request.json()
+    request = await request.json()
     print(request)
     logging.warning(f"{request}")
-    return JSONResponse(status_code=200, content=request.json())
+    return JSONResponse(status_code=200, content=request)
 
 
 if __name__ == "__main__":
