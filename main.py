@@ -23,7 +23,6 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
-from utils import split_string_with_limit, summarize, download_from_azure_storage
 from dotenv import load_dotenv
 load_dotenv()
 openai.api_type = "azure"
