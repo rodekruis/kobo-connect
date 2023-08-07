@@ -103,7 +103,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     payload, target_entity, is_entity = {}, "", False
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
-
             # check if entity is nested in target_field
             if len(target_field.split('.')) == 2:
                 target_entity = target_field.split('.')[0]
@@ -137,11 +136,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 attachment_record = client.request('POST', 'Attachment', attachment_payload)
                 # link field to attachment
                 payload[target_entity][f"{target_field}Id"] = attachment_record['id']
-        else:
-            if is_entity:
-                payload[target_entity][target_field] = ''
-            else:
-                payload[target_field] = ''
+
     # POST to target API
     if is_entity:
         target_response = {}
@@ -194,8 +189,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = kobo_value
             else:
                 payload[target_field] = attachments[kobo_value]['url']
-        else:
-            payload[target_field] = ''
 
     # POST to target API
     response = requests.post(
@@ -239,8 +232,6 @@ async def kobo_to_basic(request: Request, dependencies=Depends(required_headers)
                 payload[target_field] = kobo_value
             else:
                 payload[target_field] = attachments[kobo_value]['url']
-        else:
-            payload[target_field] = None
 
     # POST to target API
     response = requests.post(request.headers['targeturl'], headers={'x-api-key': request.headers['targetkey']},

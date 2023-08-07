@@ -1,8 +1,7 @@
 import requests
 import urllib
+from fastapi import HTTPException
 
-class EspoAPIError(Exception):
-    """An exception class for the client"""
 
 def http_build_query(data):
     parents = list()
@@ -33,6 +32,7 @@ def http_build_query(data):
         return pairs
     return urllib.parse.urlencode(r_urlencode(data))
 
+
 class EspoAPI:
 
     url_path = '/api/v1/'
@@ -46,10 +46,7 @@ class EspoAPI:
         if params is None:
             params = {}
 
-        headers = {
-        }
-
-        headers['X-Api-Key'] = self.api_key
+        headers = {'X-Api-Key': self.api_key}
 
         kwargs = {
             'url': self.normalize_url(action),
@@ -61,19 +58,23 @@ class EspoAPI:
         else:
             kwargs['url'] = kwargs['url'] + '?' + http_build_query(params)
 
-        # print(kwargs['url'])
-        print(kwargs)
         response = requests.request(method, **kwargs)
 
         self.status_code = response.status_code
 
         if self.status_code != 200:
             reason = self.parse_reason(response.headers)
-            raise EspoAPIError(f'Wrong request, status code is {response.status_code}, reason is {reason}')
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Wrong request, reason is {reason}"
+            )
 
         data = response.content
         if not data:
-            raise EspoAPIError('Wrong request, content response is empty')
+            raise HTTPException(
+                status_code=204,
+                detail=f"Wrong request, content response is empty"
+            )
 
         return response.json()
 
