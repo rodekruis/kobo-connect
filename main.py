@@ -116,7 +116,6 @@ async def post_submission(request: Request):
 
     # Create API payload body
     payload, target_entity, is_entity = {}, "", False
-    missing_fields = []
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
 
@@ -159,14 +158,6 @@ async def post_submission(request: Request):
                         payload[target_entity][target_field] = f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
                     else:
                         payload[target_field] = f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
-        elif kobo_field not in default_headers:
-            missing_fields.append(kobo_field)
-    if len(missing_fields) > 0:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Kobo field(s) in headers {', '.join(missing_fields)} are missing from submission"
-        )
-    print(payload)
 
     # POST to target API
     if is_entity:
