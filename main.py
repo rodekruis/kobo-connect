@@ -43,6 +43,7 @@ app = FastAPI(
     },
 )
 
+
 def required_headers(
         targeturl: str = Header(),
         targetkey: str = Header()):
@@ -50,10 +51,10 @@ def required_headers(
 
 
 def required_headers_121(
-        targeturl: str = Header(),
-        targetkey: str = Header(),
-        programid: str = Header()):
-    return targeturl, targetkey, programid
+        url121: str = Header(),
+        username121: str = Header(),
+        password121: str = Header()):
+    return url121, username121, password121
 
 
 def get_kobo_attachment(URL, kobo_token):
@@ -62,6 +63,28 @@ def get_kobo_attachment(URL, kobo_token):
     data_request = requests.get(URL, headers=headers)
     data = data_request.content
     return data
+
+
+def get_attachment_dict(kobo_data):
+    """Create a dictionary that maps the attachment filenames to their URL."""
+    attachments = {}
+    if '_attachments' in kobo_data.keys():
+        if kobo_data['_attachments'] is not None:
+            for attachment in kobo_data['_attachments']:
+                filename = attachment['filename'].split('/')[-1]
+                downloadurl = attachment['download_url']
+                mimetype = attachment['mimetype']
+                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    return attachments
+
+
+def clean_kobo_data(kobo_data):
+    kobo_data_clean = {k.lower(): v for k, v in kobo_data.items()}
+    # remove group names
+    for key in list(kobo_data_clean.keys()):
+        new_key = key.split('/')[-1]
+        kobo_data_clean[new_key] = kobo_data_clean.pop(key)
+    return kobo_data_clean
 
 
 @app.get("/", include_in_schema=False)
@@ -77,27 +100,8 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
 
     kobo_data = await request.json()
-    kobo_data = {k.lower(): v for k, v in kobo_data.items()}
-
-    # remove group names
-    for key in list(kobo_data.keys()):
-        new_key = key.split('/')[-1]
-        kobo_data[new_key] = kobo_data.pop(key)
-
-    # Create a dictionary to map the attachment filenames to their URL
-    attachments = {}
-    if '_attachments' in kobo_data.keys():
-        if kobo_data['_attachments'] is not None:
-            if 'kobotoken' not in request.headers.keys():
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"kobotoken needs to be specified in headers to upload attachments to EspoCRM"
-                )
-            for attachment in kobo_data['_attachments']:
-                filename = attachment['filename'].split('/')[-1]
-                downloadurl = attachment['download_url']
-                mimetype = attachment['mimetype']
-                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    kobo_data = clean_kobo_data(kobo_data)
+    attachments = get_attachment_dict(kobo_data)
 
     # Create API payload body
     payload, target_entity, is_entity = {}, "", False
@@ -121,6 +125,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                     payload[target_field] = kobo_value
             else:
                 file_url = attachments[kobo_value]['url']
+                if 'kobotoken' not in request.headers.keys():
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"'kobotoken' needs to be specified in headers to upload attachments to EspoCRM"
+                    )
                 # encode image in base64
                 file = get_kobo_attachment(file_url, request.headers['kobotoken'])
                 file_b64 = base64.b64encode(file).decode("utf8")
@@ -145,14 +154,14 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             if 'id' not in response.keys():
                 raise HTTPException(
                     status_code=500,
-                    detail=response.content
+                    detail=response.content.decode("utf-8")
                 )
             else:
                 target_response[target_entity] = response
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"EspoCRM client needs the entity name to be specified in headers as <entity>.<field>"
+            detail=f"EspoCRM client needs the entity name to be specified in headers as '<entity>.<field>'"
         )
     return JSONResponse(status_code=200, content=target_response)
 
@@ -162,42 +171,48 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
-    kobo_data = {k.lower(): v for k, v in kobo_data.items()}
+    kobo_data = clean_kobo_data(kobo_data)
+    attachments = get_attachment_dict(kobo_data)
 
-    # remove group names
-    for key in list(kobo_data.keys()):
-        new_key = key.split('/')[-1]
-        kobo_data[new_key] = kobo_data.pop(key)
-
-    # Create a dictionary to map the attachment filenames to their URL
-    attachments = {}
-    if '_attachments' in kobo_data.keys():
-        if kobo_data['_attachments'] is not None:
-            for attachment in kobo_data['_attachments']:
-                filename = attachment['filename'].split('/')[-1]
-                downloadurl = attachment['download_url']
-                mimetype = attachment['mimetype']
-                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    if 'programid' in request.headers.keys():
+        programid = request.headers['programid']
+    elif 'programid' in kobo_data.keys():
+        programid = request.headers['programid']
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'programid' needs to be specified in headers or submission body"
+        )
 
     # Create API payload body
-    payload, target_entity, is_entity = {}, "", False
+    payload = {}
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
-
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
             if kobo_value not in attachments.keys():
                 payload[target_field] = kobo_value
             else:
                 payload[target_field] = attachments[kobo_value]['url']
 
+    # get access token from cookie
+    body = {'username': request.headers['username121'], 'password': request.headers['password121']}
+    url = f"{request.headers['url121']}/api/user/login"
+    login = requests.post(url, data=body)
+    if login.status_code != 200:
+        raise HTTPException(
+            status_code=login.status_code,
+            detail=login.content.decode("utf-8")
+        )
+    access_token = login.json()['access_token_general']
+
     # POST to target API
     response = requests.post(
-        f"{request.headers['targeturl']}/api/programs/{request.headers['programid']}/registrations/import",
-        headers={'Cookie': f"access_token_general={request.headers['targetkey']}"},
+        f"{request.headers['targeturl']}/api/programs/{programid}/registrations/import",
+        headers={'Cookie': f"access_token_general={access_token}"},
         json=payload
     )
     target_response = response.content.decode("utf-8")
-    return JSONResponse(status_code=200, content=target_response)
+    return JSONResponse(status_code=response.status_code, content=target_response)
 
 
 @app.post("/kobo-to-basic")
@@ -206,25 +221,11 @@ async def kobo_to_basic(request: Request, dependencies=Depends(required_headers)
      API Key is passed as 'x-api-key' in headers."""
 
     kobo_data = await request.json()
-    kobo_data = {k.lower(): v for k, v in kobo_data.items()}
-
-    # remove group names
-    for key in list(kobo_data.keys()):
-        new_key = key.split('/')[-1]
-        kobo_data[new_key] = kobo_data.pop(key)
-
-    # Create a dictionary to map the attachment filenames to their URL
-    attachments = {}
-    if '_attachments' in kobo_data.keys():
-        if kobo_data['_attachments'] is not None:
-            for attachment in kobo_data['_attachments']:
-                filename = attachment['filename'].split('/')[-1]
-                downloadurl = attachment['download_url']
-                mimetype = attachment['mimetype']
-                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    kobo_data = clean_kobo_data(kobo_data)
+    attachments = get_attachment_dict(kobo_data)
 
     # Create API payload body
-    payload, target_entity, is_entity = {}, "", False
+    payload = {}
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
