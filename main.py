@@ -43,21 +43,17 @@ app = FastAPI(
     },
 )
 
-default_headers = ["accept", "accept-encoding", "content-length", "content-type", "connection", "host", "sentry-trace",
-                   "user-agent", "TargetURL", "TargetKey", "KoboToken"]
-
-
 def required_headers(
-        TargetURL: str = Header(),
-        TargetKey: str = Header()):
-    return TargetURL, TargetKey
+        targeturl: str = Header(),
+        targetkey: str = Header()):
+    return targeturl, targetkey
 
 
 def required_headers_121(
-        TargetURL: str = Header(),
-        TargetKey: str = Header(),
-        ProgramID: str = Header()):
-    return TargetURL, TargetKey, ProgramID
+        targeturl: str = Header(),
+        targetkey: str = Header(),
+        programid: str = Header()):
+    return targeturl, targetkey, programid
 
 
 def get_kobo_attachment(URL, kobo_token):
@@ -78,7 +74,7 @@ async def docs_redirect():
 async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers)):
     """Send a Kobo submission to EspoCRM."""
 
-    client = EspoAPI(request.headers['TargetURL'], request.headers['TargetKey'])
+    client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
 
     kobo_data = await request.json()
     kobo_data = {k.lower(): v for k, v in kobo_data.items()}
@@ -92,10 +88,10 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     attachments = {}
     if '_attachments' in kobo_data.keys():
         if kobo_data['_attachments'] is not None:
-            if 'KoboToken' not in request.headers.keys():
+            if 'kobotoken' not in request.headers.keys():
                 raise HTTPException(
                     status_code=400,
-                    detail=f"KoboToken needs to be specified in headers to upload attachments to EspoCRM"
+                    detail=f"kobotoken needs to be specified in headers to upload attachments to EspoCRM"
                 )
             for attachment in kobo_data['_attachments']:
                 filename = attachment['filename'].split('/')[-1]
@@ -127,7 +123,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             else:
                 file_url = attachments[kobo_value]['url']
                 # encode image in base64
-                file = get_kobo_attachment(file_url, request.headers['KoboToken'])
+                file = get_kobo_attachment(file_url, request.headers['kobotoken'])
                 file_b64 = base64.b64encode(file).decode("utf8")
                 # upload attachment to target
                 attachment_payload = {
@@ -203,8 +199,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     # POST to target API
     response = requests.post(
-        f"{request.headers['TargetURL']}/api/programs/{request.headers['ProgramID']}/registrations/import",
-        headers={'Cookie': f"access_token_general={request.headers['TargetKey']}"},
+        f"{request.headers['targeturl']}/api/programs/{request.headers['programid']}/registrations/import",
+        headers={'Cookie': f"access_token_general={request.headers['targetkey']}"},
         json=payload
     )
     target_response = response.content.decode("utf-8")
@@ -212,7 +208,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
 
 @app.post("/kobo-to-basic")
-async def post_to_basic(request: Request, dependencies=Depends(required_headers)):
+async def kobo_to_basic(request: Request, dependencies=Depends(required_headers)):
     """Send a Kobo submission to a basic API.
      API Key is passed as 'x-api-key' in headers."""
 
@@ -247,7 +243,7 @@ async def post_to_basic(request: Request, dependencies=Depends(required_headers)
             payload[target_field] = None
 
     # POST to target API
-    response = requests.post(request.headers['TargetURL'], headers={'x-api-key': request.headers['TargetKey']},
+    response = requests.post(request.headers['targeturl'], headers={'x-api-key': request.headers['targetkey']},
                              data=payload)
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=200, content=target_response)
