@@ -1,6 +1,6 @@
 import uvicorn
 from typing import Union
-from fastapi import Security, Depends, FastAPI, Request, HTTPException
+from fastapi import Security, Depends, FastAPI, APIRouter, Request, HTTPException, Header
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ port = os.environ["PORT"]
 
 # initialize FastAPI
 app = FastAPI(
-    title="kobo-connect",
+    title="KoboConnect",
     description="Connect Kobo to anything. \n"
                 "Built with love by [NLRC 510](https://www.510.global/). "
                 "See [the project on GitHub](https://github.com/rodekruis/kobo-connect) "
@@ -44,17 +44,20 @@ app = FastAPI(
 )
 
 default_headers = ["accept", "accept-encoding", "content-length", "content-type", "connection", "host", "sentry-trace",
-                   "user-agent", "targeturl", "targetapikey", "kobotoken"]
+                   "user-agent", "TargetURL", "TargetKey", "KoboToken"]
 
 
-def get_kobo_data_id(ID, kobo_token, kobo_asset):
-    # Get data from kobo
-    headers = {'Authorization': f'Token {kobo_token}'}
-    data_request = requests.get(
-        f'https://kobonew.ifrc.org/api/v2/assets/{kobo_asset}/data.json/?query={{"_id":{ID}}}',
-        headers=headers)
-    data = data_request.json()['results'][0]
-    return data
+def required_headers(
+        TargetURL: str = Header(),
+        TargetKey: str = Header()):
+    return TargetURL, TargetKey
+
+
+def required_headers_121(
+        TargetURL: str = Header(),
+        TargetKey: str = Header(),
+        ProgramID: str = Header()):
+    return TargetURL, TargetKey, ProgramID
 
 
 def get_kobo_attachment(URL, kobo_token):
@@ -67,24 +70,15 @@ def get_kobo_attachment(URL, kobo_token):
 
 @app.get("/", include_in_schema=False)
 async def docs_redirect():
+    """Redirect base URL to docs."""
     return RedirectResponse(url='/docs')
 
 
-@app.post("/kobo-to-espo")
-async def post_to_espo(request: Request):
-    """post a Kobo submission to EspoCRM."""
+@app.post("/kobo-to-espocrm")
+async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers)):
+    """Send a Kobo submission to EspoCRM."""
 
-    for header in ['kobotoken', 'targeturl', 'targetapikey']:
-        if header not in request.headers.keys():
-            raise HTTPException(
-                status_code=400,
-                detail=f"{header} needs to be specified in headers"
-            )
-    kobotoken = request.headers['kobotoken']
-    targeturl = request.headers['targeturl']
-    targetapikey = request.headers['targetapikey']
-
-    client = EspoAPI(targeturl, targetapikey)
+    client = EspoAPI(request.headers['TargetURL'], request.headers['TargetKey'])
 
     kobo_data = await request.json()
     kobo_data = {k.lower(): v for k, v in kobo_data.items()}
@@ -98,6 +92,11 @@ async def post_to_espo(request: Request):
     attachments = {}
     if '_attachments' in kobo_data.keys():
         if kobo_data['_attachments'] is not None:
+            if 'KoboToken' not in request.headers.keys():
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"KoboToken needs to be specified in headers to upload attachments to EspoCRM"
+                )
             for attachment in kobo_data['_attachments']:
                 filename = attachment['filename'].split('/')[-1]
                 downloadurl = attachment['download_url']
@@ -128,7 +127,7 @@ async def post_to_espo(request: Request):
             else:
                 file_url = attachments[kobo_value]['url']
                 # encode image in base64
-                file = get_kobo_attachment(file_url, kobotoken)
+                file = get_kobo_attachment(file_url, request.headers['KoboToken'])
                 file_b64 = base64.b64encode(file).decode("utf8")
                 # upload attachment to target
                 attachment_payload = {
@@ -142,7 +141,11 @@ async def post_to_espo(request: Request):
                 attachment_record = client.request('POST', 'Attachment', attachment_payload)
                 # link field to attachment
                 payload[target_entity][f"{target_field}Id"] = attachment_record['id']
-
+        else:
+            if is_entity:
+                payload[target_entity][target_field] = ''
+            else:
+                payload[target_field] = ''
     # POST to target API
     if is_entity:
         target_response = {}
@@ -163,19 +166,9 @@ async def post_to_espo(request: Request):
     return JSONResponse(status_code=200, content=target_response)
 
 
-@app.post("/kobo-to-basic")
-async def post_to_basic(request: Request):
-    """post a Kobo submission to a basic API."""
-
-    for header in ['kobotoken', 'targeturl', 'targetapikey']:
-        if header not in request.headers.keys():
-            raise HTTPException(
-                status_code=400,
-                detail=f"{header} needs to be specified in headers"
-            )
-    kobotoken = request.headers['kobotoken']
-    targeturl = request.headers['targeturl']
-    targetapikey = request.headers['targetapikey']
+@app.post("/kobo-to-121")
+async def kobo_to_121(request: Request, dependencies=Depends(required_headers_121)):
+    """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
     kobo_data = {k.lower(): v for k, v in kobo_data.items()}
@@ -200,47 +193,63 @@ async def post_to_basic(request: Request):
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
 
-            # check if entity is nested in target_field
-            if len(target_field.split('.')) == 2:
-                target_entity = target_field.split('.')[0]
-                target_field = target_field.split('.')[1]
-                if target_entity not in payload.keys():
-                    payload[target_entity] = {}
-                    is_entity = True
-            else:
-                is_entity = False
-
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
             if kobo_value not in attachments.keys():
-                if is_entity:
-                    payload[target_entity][target_field] = kobo_value
-                else:
-                    payload[target_field] = kobo_value
+                payload[target_field] = kobo_value
             else:
-                file_url = attachments[kobo_value]['url']
-                # encode image in base64
-                file = get_kobo_attachment(file_url, kobotoken)
-                file_b64 = base64.b64encode(file).decode("utf8")
-                if is_entity:
-                    payload[target_entity][target_field] = f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
-                else:
-                    payload[target_field] = f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
+                payload[target_field] = attachments[kobo_value]['url']
+        else:
+            payload[target_field] = ''
 
     # POST to target API
-    if is_entity:
-        target_response = {}
-        for target_entity in payload.keys():
-            response = requests.post(targeturl, headers={'X-Api-Key': targetapikey}, data=payload[target_entity])
-            if response.status_code > 230:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=response.content
-                )
+    response = requests.post(
+        f"{request.headers['TargetURL']}/api/programs/{request.headers['ProgramID']}/registrations/import",
+        headers={'Cookie': f"access_token_general={request.headers['TargetKey']}"},
+        json=payload
+    )
+    target_response = response.content.decode("utf-8")
+    return JSONResponse(status_code=200, content=target_response)
+
+
+@app.post("/kobo-to-basic")
+async def post_to_basic(request: Request, dependencies=Depends(required_headers)):
+    """Send a Kobo submission to a basic API.
+     API Key is passed as 'x-api-key' in headers."""
+
+    kobo_data = await request.json()
+    kobo_data = {k.lower(): v for k, v in kobo_data.items()}
+
+    # remove group names
+    for key in list(kobo_data.keys()):
+        new_key = key.split('/')[-1]
+        kobo_data[new_key] = kobo_data.pop(key)
+
+    # Create a dictionary to map the attachment filenames to their URL
+    attachments = {}
+    if '_attachments' in kobo_data.keys():
+        if kobo_data['_attachments'] is not None:
+            for attachment in kobo_data['_attachments']:
+                filename = attachment['filename'].split('/')[-1]
+                downloadurl = attachment['download_url']
+                mimetype = attachment['mimetype']
+                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+
+    # Create API payload body
+    payload, target_entity, is_entity = {}, "", False
+    for kobo_field, target_field in request.headers.items():
+        if kobo_field in kobo_data.keys():
+            kobo_value = kobo_data[kobo_field].replace(" ", "_")
+            if kobo_value not in attachments.keys():
+                payload[target_field] = kobo_value
             else:
-                target_response[target_entity] = response.content
-    else:
-        response = requests.post(targeturl, headers={'X-Api-Key': targetapikey}, data=payload)
-        target_response = response.content.decode("utf-8")
+                payload[target_field] = attachments[kobo_value]['url']
+        else:
+            payload[target_field] = None
+
+    # POST to target API
+    response = requests.post(request.headers['TargetURL'], headers={'x-api-key': request.headers['TargetKey']},
+                             data=payload)
+    target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=200, content=target_response)
 
 
