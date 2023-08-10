@@ -193,6 +193,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = kobo_value
             else:
                 payload[target_field] = attachments[kobo_value]['url']
+        else:
+            payload[target_field] = ""
 
     # get access token from cookie
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
