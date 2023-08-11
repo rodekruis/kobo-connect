@@ -130,7 +130,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                         status_code=400,
                         detail=f"'kobotoken' needs to be specified in headers to upload attachments to EspoCRM"
                     )
-                # encode image in base64
+                # encode attachment in base64
                 file = get_kobo_attachment(file_url, request.headers['kobotoken'])
                 file_b64 = base64.b64encode(file).decode("utf8")
                 # upload attachment to target
@@ -217,9 +217,9 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     return JSONResponse(status_code=response.status_code, content=target_response)
 
 
-@app.post("/kobo-to-basic")
-async def kobo_to_basic(request: Request, dependencies=Depends(required_headers)):
-    """Send a Kobo submission to a basic API.
+@app.post("/kobo-to-generic")
+async def kobo_to_generic(request: Request, dependencies=Depends(required_headers)):
+    """Send a Kobo submission to a generic API.
      API Key is passed as 'x-api-key' in headers."""
 
     kobo_data = await request.json()
@@ -234,7 +234,16 @@ async def kobo_to_basic(request: Request, dependencies=Depends(required_headers)
             if kobo_value not in attachments.keys():
                 payload[target_field] = kobo_value
             else:
-                payload[target_field] = attachments[kobo_value]['url']
+                file_url = attachments[kobo_value]['url']
+                if 'kobotoken' not in request.headers.keys():
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"'kobotoken' needs to be specified in headers to upload attachments"
+                    )
+                # encode attachment in base64
+                file = get_kobo_attachment(file_url, request.headers['kobotoken'])
+                file_b64 = base64.b64encode(file).decode("utf8")
+                payload[target_field] = f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
 
     # POST to target API
     response = requests.post(request.headers['targeturl'], headers={'x-api-key': request.headers['targetkey']},
