@@ -29,6 +29,9 @@ Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/defau
 #### 121
 TBI
 
+#### Generic endpoint
+TBI
+
 See [the docs](https://kobo-connect.azurewebsites.net/docs).
 
 ## Run locally
