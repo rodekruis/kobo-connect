@@ -197,10 +197,11 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
             payload[target_field] = ""
 
     # get access token from cookie
+    print("first get token")
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
     url = f"{request.headers['url121']}/api/user/login"
     login = requests.post(url, data=body)
-    if login.status_code != 200:
+    if login.status_code >= 400:
         raise HTTPException(
             status_code=login.status_code,
             detail=login.content.decode("utf-8")
@@ -208,10 +209,11 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     access_token = login.json()['access_token_general']
 
     # POST to target API
+    print("then login")
     response = requests.post(
-        f"{request.headers['targeturl']}/api/programs/{programid}/registrations/import",
+        f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
         headers={'Cookie': f"access_token_general={access_token}"},
-        json=payload
+        json=[payload]
     )
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=response.status_code, content=target_response)
