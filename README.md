@@ -46,7 +46,8 @@ _Nota bene_:
   ![programId](https://github.com/rodekruis/kobo-connect/assets/39266480/1b0ccf53-2740-4432-b31e-d5cb57d2aac5)
 - If `programid` is not included as a question, it needs to be added to the header as a number
 
-See below for an example configuration, in which programId was not included as a question so it is included in the header. 
+See below for an example configuration, in which programId was not included as a question so it is included in the header.
+
 <img src="https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8" width="500">
 
 
