@@ -35,10 +35,11 @@ Using the [`kobo-to-121`](https://kobo-connect.azurewebsites.net/docs#/default/k
 2. [Create a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html).
 3. Insert as `Endpoint URL` `https://kobo-connect.azurewebsites.net/kobo-to-121`.
 4. For each question, add a `Custom HTTP Header` that specifies to which entity and field it corresponds to.
-    - The header name must correspond to the Kobo column name (not label).
-    - The header value must correspond to the field name in 121.
+   - The header name (left) must correspond to the Kobo column name (not label).
+   - The header value (right) must correspond to the field name in 121.
 
 _Special Headers_:
+
 - The headers `url121` is required and corresponds the the url of the 121 instance (without trailing `/`, so e.g. https://staging.121.global)
 - Headers `username121` and `password121`, corresponding to the 121 username and the 121 password respectively, must be included as well.
 - If `programid` is included as a (select one) question, the `XML Value` of the question in kobo needs to be the corresponding number in the 121 portal, the label can be something else, see below
@@ -48,7 +49,6 @@ _Special Headers_:
 See below for an example configuration, in which programId was not included as a question so it is included in the header.
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8" width="500">
-
 
 #### Generic endpoint
 
