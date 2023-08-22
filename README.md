@@ -39,14 +39,16 @@ Using the [`kobo-to-121`](https://kobo-connect.azurewebsites.net/docs#/default/k
 _Nota bene_:
 
 - The header name must correspond to the Kobo column name (not label).
-- The header value must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name.
-- The headers `url121` (without trailing `/`, so e.g. https://staging.121.global), `username121` and `password121`, corresponding to the 121 URL, the 121 username and the 121 password respectively, must be included as well.
+- The header value must correspond to the field name in 121.
+- The headers `url121` is required and corresponds the the url of the 121 instance (without trailing `/`, so e.g. https://staging.121.global)
+- Headers `username121` and `password121`, corresponding to the 121 username and the 121 password respectively, must be included as well.
 - If `programid` is included as a (select one) question, the `XML Value` of the question in kobo needs to be the corresponding number in the 121 portal, the label can be something else, see below
   ![programId](https://github.com/rodekruis/kobo-connect/assets/39266480/1b0ccf53-2740-4432-b31e-d5cb57d2aac5)
 - If `programid` is not included as a question, it needs to be added to the header as a number
 
-See below for an example configuration
-![headers](https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8)
+See below for an example configuration, in which programId was not included as a question so it is included in the header. 
+<img src="https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8" width="500">
+
 
 #### Generic endpoint
 
