@@ -10,9 +10,11 @@ Deatils: see [the docs](https://kobo-connect.azurewebsites.net/docs).
 
 ## API Usage
 
-#### EspoCRM
+### EspoCRM
 
-Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_espocrm_kobo_to_espocrm_post) endpoint, it is possible to save a Kobo submission as one or more entities in [EspoCRM](https://www.espocrm.com/). Step by step:
+Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_espocrm_kobo_to_espocrm_post) endpoint, it is possible to save a Kobo submission as one or more entities in [EspoCRM](https://www.espocrm.com/). 
+
+Step by step:
 
 1. Define which questions in the Kobo form need to be saved in which entity and field.
 2. [Create a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html).
@@ -21,15 +23,17 @@ Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/defau
 
 _Nota bene_:
 
-- The header name must correspond to the Kobo column name (not label).
-- The header value must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name.
+- The header name (left) must correspond to the Kobo column name (not label).
+- The header value (right) must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name.
 - The headers `targeturl` and `targetkey`, corresponding to the EspoCRM URL and API Key respectively, must be included as well.
 
 <img src="https://github.com/jmargutt/kobo-connect/assets/26323051/62c1471f-80c4-4f13-b202-125c8aa5c7b8" width="500">
 
-#### 121
+### 121
 
-Using the [`kobo-to-121`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_121_kobo_to_121_post) endpoint, it is possible to save a Kobo submission as a PA registration in the [121 Portal](https://www.121.global/). Step by step:
+Using the [`kobo-to-121`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_121_kobo_to_121_post) endpoint, it is possible to save a Kobo submission as a Person Affected (PA) registration in the [121 Portal](https://www.121.global/).
+
+Step by step:
 
 1. Define which questions in the Kobo form need to be saved in which field.
 2. [Create a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html).
@@ -50,9 +54,7 @@ See below for an example configuration, in which programId was not included as a
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8" width="500">
 
-#### Generic endpoint
-
-TBI
+### Generic endpoint
 
 See [the docs](https://kobo-connect.azurewebsites.net/docs).
 
