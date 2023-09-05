@@ -177,12 +177,17 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     if 'programid' in request.headers.keys():
         programid = request.headers['programid']
     elif 'programid' in kobo_data.keys():
-        programid = request.headers['programid']
+        programid = kobo_data['programid']
     else:
         raise HTTPException(
             status_code=400,
             detail=f"'programid' needs to be specified in headers or submission body"
         )
+
+    if 'referenceId' in request.headers.keys():
+        referenceId = request.headers['referenceId']
+    else:
+        referenceId = kobo_data['_uuid']
 
     # Create API payload body
     payload = {}
@@ -195,6 +200,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = attachments[kobo_value]['url']
         else:
             payload[target_field] = ""
+
+    payload['referenceId'] = referenceId
 
     # get access token from cookie
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
