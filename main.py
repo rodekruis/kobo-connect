@@ -117,7 +117,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             else:
                 is_entity = False
 
-            kobo_value = kobo_data[kobo_field].replace(" ", "_")
+            kobo_value = kobo_data[kobo_field]  # .replace(" ", "_")
             if kobo_value not in attachments.keys():
                 if is_entity:
                     payload[target_entity][target_field] = kobo_value
