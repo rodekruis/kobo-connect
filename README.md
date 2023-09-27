@@ -61,6 +61,7 @@ See [the docs](https://kobo-connect.azurewebsites.net/docs).
 ## Run locally
 
 ```
+cp example.env .env
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
