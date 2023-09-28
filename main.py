@@ -137,11 +137,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 # upload attachment to target
                 attachment_payload = {
                     "name": kobo_value,
-                    "type": attachments[kobo_value]['mimetype'],
+                    "type": attachments[kobo_value_url]['mimetype'],
                     "role": "Attachment",
                     "relatedType": target_entity,
                     "field": target_field,
-                    "file": f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
+                    "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
                 }
                 attachment_record = client.request('POST', 'Attachment', attachment_payload)
                 # link field to attachment
