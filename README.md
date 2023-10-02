@@ -54,6 +54,12 @@ See below for an example configuration, in which programId was not included as a
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/39266480/bb7b922b-7a39-4093-b525-456687491ba8" width="500">
 
+
+#### Nota Bene
+The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
+
+
+
 ### Generic endpoint
 
 See [the docs](https://kobo-connect.azurewebsites.net/docs).
