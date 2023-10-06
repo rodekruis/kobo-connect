@@ -38,6 +38,8 @@ class EspoAPI:
     url_path = '/api/v1/'
 
     def __init__(self, url, api_key):
+        if url.endswith('/'):
+            url = url[:-1]
         self.url = url
         self.api_key = api_key
         self.status_code = None
