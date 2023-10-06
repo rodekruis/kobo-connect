@@ -24,6 +24,7 @@ Step by step:
 _Nota bene_:
 
 - The header name (left) must correspond to the Kobo column name (not label).
+- If you are using multi-select fields in kobo that you want to push to multi-enum in espocrm, make sure to prefix the header name (left) by `multi.`
 - The header value (right) must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name.
 - The headers `targeturl` and `targetkey`, corresponding to the EspoCRM URL and API Key respectively, must be included as well.
 
