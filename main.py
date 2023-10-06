@@ -107,7 +107,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     payload, target_entity, is_entity = {}, "", False
     for kobo_field, target_field in request.headers.items():
         multi = False
-        if "multi" in kobo_field:
+        if "multi." in kobo_field:
             kobo_field = kobo_field.split(".")[1]
             multi = True
         if kobo_field in kobo_data.keys():
@@ -123,7 +123,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
 
             if multi:
                 kobo_value = kobo_data[kobo_field].split(" ")
-                print(kobo_value)
             else:
                 kobo_value = kobo_data[kobo_field]
             kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
