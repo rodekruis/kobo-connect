@@ -104,8 +104,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     attachments = get_attachment_dict(kobo_data)
 
     # Create API payload body
-    payload, target_entity, is_entity = {}, "", False
+    payload, target_entity, is_entity, multi = {}, "", False, False
     for kobo_field, target_field in request.headers.items():
+        if "multi" in kobo_field:
+            kobo_field = kobo_field.split(".")[1]
+            multi = True
         if kobo_field in kobo_data.keys():
             # check if entity is nested in target_field
             if len(target_field.split('.')) == 2:
@@ -116,8 +119,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                     is_entity = True
             else:
                 is_entity = False
-            
-            kobo_value = kobo_data[kobo_field]
+
+            if multi:
+                kobo_value = kobo_data[kobo_field].split(" ")
+            else:
+                kobo_value = kobo_data[kobo_field]
             kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
             if kobo_value_url not in attachments.keys():
                 if is_entity:
