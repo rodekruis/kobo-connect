@@ -204,7 +204,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         if kobo_field in kobo_data.keys():
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
             if kobo_value not in attachments.keys():
-                payload[target_field] = kobo_value
+                payload[target_field] = kobo_data[kobo_field]
             else:
                 payload[target_field] = attachments[kobo_value]['url']
         else:
