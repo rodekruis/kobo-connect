@@ -76,6 +76,8 @@ In the body you can pass all the headers you want to create as key value pairs, 
  }
 ```
 
+This endpoint assumes the IFRC kobo server (`https://kobonew.ifrc.org`)
+
 ### Generic endpoint
 
 See [the docs](https://kobo-connect.azurewebsites.net/docs).
