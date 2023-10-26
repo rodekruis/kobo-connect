@@ -246,7 +246,6 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
     target_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
     auth = (kobouser, kobopassword)
 
-
     payload = {
         "name": "koboconnect",
         "endpoint": f"https://kobo-connect.azurewebsites.net/kobo-to-{system}",
