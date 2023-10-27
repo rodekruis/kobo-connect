@@ -4,6 +4,7 @@ from fastapi import Security, Depends, FastAPI, APIRouter, Request, HTTPExceptio
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
+from enum import Enum
 from clients.espo_api_client import EspoAPI
 import requests
 import os
@@ -43,6 +44,10 @@ app = FastAPI(
     },
 )
 
+class system(str, Enum):
+    system_generic = "generic"
+    system_espo = "espocrm"
+    system_121 = "121"
 
 def required_headers(
         targeturl: str = Header(),
@@ -232,6 +237,39 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=response.status_code, content=target_response)
 
+@app.post("/create-kobo-headers")
+async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str):
+    
+    if json_data is None:
+        raise HTTPException(status_code=400, detail="JSON data is required")
+    
+    target_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
+    auth = (kobouser, kobopassword)
+
+    payload = {
+        "name": "koboconnect",
+        "endpoint": f"https://kobo-connect.azurewebsites.net/kobo-to-{system}",
+        "active": True,
+        "subset_fields": [],
+        "email_notification": True,
+        "export_type": "json",
+        "auth_level": "no_auth",
+        "settings": {
+            "custom_headers": {
+            }
+        },
+        "payload_template": ""
+    }
+
+    payload["settings"]["custom_headers"]=json_data
+
+    response = requests.post(target_url,auth=auth,json=payload)
+
+    if response.status_code == 200 or 201:
+        return JSONResponse(content={"message": "Sucess"})
+    else:
+        return JSONResponse(content={"message": "Failed to post data to the target endpoint"}, status_code=response.status_code)
+
 
 @app.post("/kobo-to-generic")
 async def kobo_to_generic(request: Request, dependencies=Depends(required_headers)):
@@ -266,7 +304,6 @@ async def kobo_to_generic(request: Request, dependencies=Depends(required_header
                              data=payload)
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=200, content=target_response)
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(port), reload=True)

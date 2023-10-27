@@ -60,7 +60,23 @@ See below for an example configuration, in which programId was not included as a
 #### Nota Bene
 The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
 
+### Create headers endpoint
+If you need to map a lot of questions, creating the headers manually is cumbersome. The `/create-kobo-headers` endpoint automates this. It expects 4 query parameters:
+- `system`: required, enum (options: 121, espocrm, generic)
+- `kobouser`: your kobo username
+- `kobopassword`: your kobo password
+- `koboassetId `: the assed id of the survey (to be found in the url: https://kobonew.ifrc.org/#/forms/`ASSETID`/summary)
 
+In the body you can pass all the headers you want to create as key value pairs, for example:
+ ```json
+ {
+  "last_name": "lastName",
+  "first_name": "firstName",
+  "household_size": "hhSize"
+ }
+```
+
+This endpoint assumes the IFRC kobo server (`https://kobonew.ifrc.org`)
 
 ### Generic endpoint
 
