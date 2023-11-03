@@ -219,7 +219,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     # get access token from cookie
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
-    url = f"{request.headers['url121']}/api/user/login"
+    url = f"{request.headers['url121']}/api/users/login"
     login = requests.post(url, data=body)
     if login.status_code >= 400:
         raise HTTPException(
