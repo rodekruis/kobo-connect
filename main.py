@@ -103,19 +103,24 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     """Send a Kobo submission to EspoCRM."""
 
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
-    update_record = True if 'updaterecordby' in request.headers.keys() else False
 
     kobo_data = await request.json()
     kobo_data = clean_kobo_data(kobo_data)
     attachments = get_attachment_dict(kobo_data)
     
-    # check if record can be updated
-    update_record = False
+    # check if records need to be updated
+    update_record, update_record_payload = False, {}
     if 'updaterecordby' in request.headers.keys():
-        if request.headers['updaterecordby'] in kobo_data.keys():
-            if kobo_data[request.headers['updaterecordby']] != "" and kobo_data[
-                request.headers['updaterecordby']] is not None:
+        if 'updaterecordby' in kobo_data.keys():
+            if kobo_data['updaterecordby'] != "" and kobo_data['updaterecordby'] is not None:
                 update_record = True
+                update_record_entity = request.headers['updaterecordby'].split('.')[0]
+                update_record_field = request.headers['updaterecordby'].split('.')[1]
+                update_record_payload[update_record_entity] = {
+                    'field': update_record_field,
+                    'value': kobo_data['updaterecordby']
+                }
+            kobo_data.pop('updaterecordby')
 
     # Create API payload body
     payload, target_entity, is_entity = {}, "", False
@@ -175,20 +180,20 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             if not update_record:
                 # create new record of target entity
                 response = client.request('POST', target_entity, payload[target_entity])
-            else:
+            elif target_entity in update_record_payload.keys():
                 # find target record
                 params = {"where": [{
                             "type": "contains",
-                            "attribute": request.headers['updaterecordby'],
-                            "value": kobo_data[request.headers['updaterecordby']]
+                            "attribute": update_record_payload[target_entity]['field'],
+                            "value": update_record_payload[target_entity]['value']
                 }]}
                 records = client.request('GET', target_entity, params)['list']
                 if len(records) != 1:
                     raise HTTPException(
                         status_code=400,
                         detail=f"Found {len(records)} records of entity {target_entity} "
-                               f"with field {request.headers['updaterecordby']} "
-                               f"equal to {kobo_data[request.headers['updaterecordby']]}"
+                               f"with field {update_record_payload[target_entity]['field']} "
+                               f"equal to {update_record_payload[target_entity]['value']}"
                     )
                 else:
                     # update target record
