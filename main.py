@@ -108,6 +108,14 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     kobo_data = await request.json()
     kobo_data = clean_kobo_data(kobo_data)
     attachments = get_attachment_dict(kobo_data)
+    
+    # check if record can be updated
+    update_record = False
+    if 'updaterecordby' in request.headers.keys():
+        if request.headers['updaterecordby'] in kobo_data.keys():
+            if kobo_data[request.headers['updaterecordby']] != "" and kobo_data[
+                request.headers['updaterecordby']] is not None:
+                update_record = True
 
     # Create API payload body
     payload, target_entity, is_entity = {}, "", False
@@ -257,8 +265,11 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=response.status_code, content=target_response)
 
+
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str):
+    """Utility endpoint to automatically create the necessary headers in Kobo.
+    Does only support the IFRC server kobonew.ifrc.org"""
     
     if json_data is None:
         raise HTTPException(status_code=400, detail="JSON data is required")
@@ -281,9 +292,9 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
         "payload_template": ""
     }
 
-    payload["settings"]["custom_headers"]=json_data
+    payload["settings"]["custom_headers"] = json_data
 
-    response = requests.post(target_url,auth=auth,json=payload)
+    response = requests.post(target_url, auth=auth, json=payload)
 
     if response.status_code == 200 or 201:
         return JSONResponse(content={"message": "Sucess"})
