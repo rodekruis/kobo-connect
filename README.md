@@ -19,14 +19,19 @@ Step by step:
 1. Define which questions in the Kobo form need to be saved in which entity and field.
 2. [Create a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html).
 3. Insert as `Endpoint URL` `https://kobo-connect.azurewebsites.net/kobo-to-espocrm`.
-4. For each question, add a `Custom HTTP Header` that specifies to which entity and field it corresponds to.
+4. Add two `Custom HTTP Headers` called `targeturl` and `targetkey`, with values equal to the EspoCRM URL and API Key, respectively.
+5. For each question, add a `Custom HTTP Header` that specifies to which entity and field it corresponds to.
 
 _Nota bene_:
 
-- The header name (left) must correspond to the Kobo question name (not label).
-  - If you have a question of type "Select Many" (select_multiple) in Kobo and you want to save it in a field of type "Multi-Enum" in EspoCRM, add `multi.` before the Kobo question name (see screenshot below). 
-- The header value (right) must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name.
-- The headers `targeturl` and `targetkey`, corresponding to the EspoCRM URL and API Key respectively, must be included as well.
+- The header name (left) must correspond to the Kobo question name.
+- The header value (right) must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name. Example: `Contact.name`.
+- If you have a question of type `Select Many` (`select_multiple`) in Kobo and you want to save it in a field of type `Multi-Enum` in EspoCRM, add `multi.` before the Kobo question name in the header name (see screenshot below). 
+- If you need to send **attachments** (e.g. images) to to EspoCRM, add a `Custom HTTP Header` called `kobotoken` with your API token (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token)).
+- If you need to **update** a pre-existing record:
+  - add a question of type `calculate` called `updaterecordby` in the kobo form, whcih will contain the value of the field which you will use to identify the record;
+  - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
+- The API User in EspoCRM must have a role with `Create` permissions on the target entity; if you need to update records, also `Read` and `Edit`.
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/26323051/06de75f3-d02d-4f9f-bb82-db6736542cf5" width="500">
 
