@@ -98,6 +98,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     """Send a Kobo submission to EspoCRM."""
 
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
+    update_record = True if 'updaterecordby' in request.headers.keys() else False
 
     kobo_data = await request.json()
     kobo_data = clean_kobo_data(kobo_data)
@@ -154,12 +155,31 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 # link field to attachment
                 payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
-    # POST to target API
     if is_entity:
         target_response = {}
         for target_entity in payload.keys():
             logger.info(payload)
-            response = client.request('POST', target_entity, payload[target_entity])
+            if not update_record:
+                # create new record of target entity
+                response = client.request('POST', target_entity, payload[target_entity])
+            else:
+                # find target record
+                params = {"where": [{
+                            "type": "contains",
+                            "attribute": request.headers['updaterecordby'],
+                            "value": kobo_data[request.headers['updaterecordby']]
+                }]}
+                records = client.request('GET', target_entity, params)['list']
+                if len(records) != 1:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Found {len(records)} records of entity {target_entity} "
+                               f"with field {request.headers['updaterecordby']} "
+                               f"equal to {kobo_data[request.headers['updaterecordby']]}"
+                    )
+                else:
+                    # update target record
+                    response = client.request('PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
             if 'id' not in response.keys():
                 raise HTTPException(
                     status_code=500,
