@@ -88,12 +88,7 @@ def clean_kobo_data(kobo_data):
     # remove group names
     for key in list(kobo_data_clean.keys()):
         new_key = key.split('/')[-1]
-        # if new_key not in kobo_data_clean.keys():
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
-        # else:
-        #     new_value = kobo_data_clean.pop(key)
-        #     if kobo_data_clean[new_key] == "" or kobo_data_clean[new_key] is None:
-        #         kobo_data_clean[new_key] = new_value
     return kobo_data_clean
 
 
@@ -110,9 +105,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
 
     kobo_data = await request.json()
-    logging.info(kobo_data)
     kobo_data = clean_kobo_data(kobo_data)
-    logging.info(kobo_data)
     attachments = get_attachment_dict(kobo_data)
     
     # check if records need to be updated
