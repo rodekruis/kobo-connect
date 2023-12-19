@@ -218,10 +218,15 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
-    if 'skipConnect' in kobo_data.keys() and kobo_data['skipConnect']:
-        quit()
+    kobo_data = clean_kobo_data(kobo_data)
+    
+    # Check if 'skipConnect' is present and set to True in kobo_data
+    if 'skipconnect' in kobo_data and kobo_data['skipconnect'] == '1':
+        return JSONResponse(status_code=200, content={"message": "Skipping connection to 121"})
     
     attachments = get_attachment_dict(kobo_data)
+
+    
 
     if 'programid' in request.headers.keys():
         programid = request.headers['programid']
