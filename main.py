@@ -218,7 +218,9 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
-    kobo_data = clean_kobo_data(kobo_data)
+    if 'skipConnect' in kobo_data.keys() and kobo_data['skipConnect']:
+        quit()
+    
     attachments = get_attachment_dict(kobo_data)
 
     if 'programid' in request.headers.keys():
