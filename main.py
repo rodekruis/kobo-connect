@@ -219,6 +219,9 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     kobo_data = await request.json()
     kobo_data = clean_kobo_data(kobo_data)
+    if kobo_data['skipConnect']:
+        quit()
+    
     attachments = get_attachment_dict(kobo_data)
 
     if 'programid' in request.headers.keys():
