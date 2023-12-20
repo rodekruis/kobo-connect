@@ -241,11 +241,14 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         referenceId = kobo_data['_uuid']
 
     # Create API payload body
+    intvalues = ['maxPayments', 'paymentAmountMultiplier','inclusionScore']
     payload = {}
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
-            if kobo_value not in attachments.keys():
+            if target_field in intvalues:
+                payload[target_field] = int(kobo_data[kobo_field])
+            elif kobo_value not in attachments.keys():
                 payload[target_field] = kobo_data[kobo_field]
             else:
                 payload[target_field] = attachments[kobo_value]['url']
@@ -265,6 +268,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         )
     access_token = login.json()['access_token_general']
 
+    print([payload])
+
     # POST to target API
     response = requests.post(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
@@ -274,6 +279,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=response.status_code, content=target_response)
 
+#add maxpayment, paymentmult should be int
 
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str):
