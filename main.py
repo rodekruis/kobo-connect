@@ -268,8 +268,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         )
     access_token = login.json()['access_token_general']
 
-    print([payload])
-
     # POST to target API
     response = requests.post(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
@@ -278,8 +276,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     )
     target_response = response.content.decode("utf-8")
     return JSONResponse(status_code=response.status_code, content=target_response)
-
-#add maxpayment, paymentmult should be int
 
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str):
