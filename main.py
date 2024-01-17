@@ -8,7 +8,8 @@ from enum import Enum
 from clients.espo_api_client import EspoAPI
 import requests
 import os
-import json
+from azure.cosmos.exceptions import CosmosResourceExistsError
+import azure.cosmos.cosmos_client as cosmos_client
 from enum import Enum
 import base64
 import logging
@@ -32,22 +33,68 @@ port = os.environ["PORT"]
 
 # initialize FastAPI
 app = FastAPI(
-    title="KoboConnect",
+    title="kobo-connect",
     description="Connect Kobo to anything. \n"
                 "Built with love by [NLRC 510](https://www.510.global/). "
                 "See [the project on GitHub](https://github.com/rodekruis/kobo-connect) "
                 "or [contact us](mailto:support@510.global).",
-    version="0.0.1",
+    version="0.0.2",
     license_info={
         "name": "AGPL-3.0 license",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
     },
 )
 
+# initialize CosmosDB
+client = cosmos_client.CosmosClient(
+    os.getenv('COSMOS_URL'),
+    {'masterKey': os.getenv('COSMOS_KEY')},
+    user_agent="kobo-connect",
+    user_agent_overwrite=True
+)
+cosmos_db = client.get_database_client('kobo-connect')
+cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
+
+
+def add_submission(kobo_data):
+    submission = {
+        'id': str(kobo_data['_uuid']),
+        'uuid': str(kobo_data['formhub/uuid']),
+        'status': 'pending'
+    }
+    try:
+        submission = cosmos_container_client.create_item(body=submission)
+    except CosmosResourceExistsError:
+        submission = cosmos_container_client.read_item(
+            item=str(kobo_data['_uuid']),
+            partition_key=str(kobo_data['formhub/uuid']),
+        )
+        if submission['status'] == 'pending':
+            raise HTTPException(
+                status_code=400,
+                detail=f"Submission is still being processed."
+            )
+        elif submission['status'] == 'success':
+            raise HTTPException(
+                status_code=400,
+                detail=f"Submission has already been successfully processed."
+            )
+    return submission
+
+
+def update_submission_status(submission, status):
+    submission['status'] = status
+    cosmos_container_client.replace_item(
+        item=str(submission['id']),
+        body=submission
+    )
+
+
 class system(str, Enum):
     system_generic = "generic"
     system_espo = "espocrm"
     system_121 = "121"
+
 
 def required_headers(
         targeturl: str = Header(),
@@ -102,12 +149,16 @@ async def docs_redirect():
 async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers)):
     """Send a Kobo submission to EspoCRM."""
 
-    client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
-
     kobo_data = await request.json()
-    kobo_data = clean_kobo_data(kobo_data)
-    attachments = get_attachment_dict(kobo_data)
+    target_response = {}
+
+    # store the submission uuid and status, to avoid duplicate submissions
+    submission = add_submission(kobo_data)
     
+    kobo_data = clean_kobo_data(kobo_data)
+    client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
+    attachments = get_attachment_dict(kobo_data)
+
     # check if records need to be updated
     update_record, update_record_payload = False, {}
     if 'updaterecordby' in request.headers.keys():
@@ -153,6 +204,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             else:
                 file_url = attachments[kobo_value_url]['url']
                 if 'kobotoken' not in request.headers.keys():
+                    update_submission_status(submission, 'failed')
                     raise HTTPException(
                         status_code=400,
                         detail=f"'kobotoken' needs to be specified in headers to upload attachments to EspoCRM"
@@ -174,7 +226,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
     if is_entity:
-        target_response = {}
         for target_entity in payload.keys():
             logger.info(payload)
             if not update_record:
@@ -189,6 +240,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 }]}
                 records = client.request('GET', target_entity, params)['list']
                 if len(records) != 1:
+                    update_submission_status(submission, 'failed')
                     raise HTTPException(
                         status_code=400,
                         detail=f"Found {len(records)} records of entity {target_entity} "
@@ -199,6 +251,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                     # update target record
                     response = client.request('PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
             if 'id' not in response.keys():
+                update_submission_status(submission, 'failed')
                 raise HTTPException(
                     status_code=500,
                     detail=response.content.decode("utf-8")
@@ -206,10 +259,12 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             else:
                 target_response[target_entity] = response
     else:
+        update_submission_status(submission, 'failed')
         raise HTTPException(
             status_code=400,
             detail=f"EspoCRM client needs the entity name to be specified in headers as '<entity>.<field>'"
         )
+    update_submission_status(submission, 'success')
     return JSONResponse(status_code=200, content=target_response)
 
 

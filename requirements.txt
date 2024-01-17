@@ -22,7 +22,8 @@ urllib3==2.0.3
 yarl==1.9.2
 uvicorn==0.23.1
 fastapi==0.100.0
-azure-core==1.28.0
-azure-storage-blob==12.17.0
+azure-core==1.29.6
+azure-storage-blob==12.19.0
+azure-cosmos==4.5.1
 python-jose==3.3.0
 passlib==1.7.4
