@@ -330,6 +330,12 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         json=[payload]
     )
     target_response = response.content.decode("utf-8")
+
+    if "debug" in request.headers.items():
+        logger.info(payload)
+    
+    logger.info(target_response)
+
     return JSONResponse(status_code=response.status_code, content=target_response)
 
 @app.post("/create-kobo-headers")
@@ -400,6 +406,7 @@ async def kobo_to_generic(request: Request, dependencies=Depends(required_header
     response = requests.post(request.headers['targeturl'], headers={'x-api-key': request.headers['targetkey']},
                              data=payload)
     target_response = response.content.decode("utf-8")
+
     return JSONResponse(status_code=200, content=target_response)
 
 if __name__ == "__main__":
