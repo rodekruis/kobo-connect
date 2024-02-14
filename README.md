@@ -6,7 +6,7 @@ Connect Kobo to anything.
 
 Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that sends Kobo submissions and their attachments to other API-enabled applications, changing field names if necessary. It is basically an extension of the [KoboToolbox REST Services](https://support.kobotoolbox.org/rest_services.html).
 
-Deatils: see [the docs](https://kobo-connect.azurewebsites.net/docs).
+Details: see [the docs](https://kobo-connect.azurewebsites.net/docs).
 
 ## API Usage
 
@@ -14,24 +14,31 @@ Deatils: see [the docs](https://kobo-connect.azurewebsites.net/docs).
 
 Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_espocrm_kobo_to_espocrm_post) endpoint, it is possible to save a Kobo submission as one or more entities in [EspoCRM](https://www.espocrm.com/). 
 
-Step by step:
+#### Steps to connect Kobo to EspoCRM (see also screenshot below):
 
-1. Define which questions in the Kobo form need to be saved in which entity and field.
-2. [Create a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html).
-3. Insert as `Endpoint URL` `https://kobo-connect.azurewebsites.net/kobo-to-espocrm`.
-4. Add two `Custom HTTP Headers` called `targeturl` and `targetkey`, with values equal to the EspoCRM URL and API Key, respectively.
-5. For each question, add a `Custom HTTP Header` that specifies to which entity and field it corresponds to.
+1. Define which questions in the Kobo form need to be saved in which entity and field in EspoCRM.
+2. In EspoCRM,
+   1. Create a role (Administration>Roles), set `Access` to the target entity on `enabled`, with the permission on `yes` to `Create` (if you need to update records, also add `Read` and `Edit`)
+   2. Create an API user (Administration>API Users), give it a descriptive `User Name`, select the previously created role, make sure `Is Active` is checked and that `Authentication Method` is `API Key`. After saving, you will see a newly created API Key which is needed for the next step.
+3. [Register a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html) for the Kobo form of interest and give it a descriptive name.
+4. Insert as `Endpoint URL`
+```
+https://kobo-connect.azurewebsites.net/kobo-to-espocrm
+```
+6. In Kobo REST Services, add under `Custom HTTP Headers`:
+   1. In `Name` add `targeturl` with in the `Value` the EspoCRM URL (for example, https://espocrminstancex.com)
+   2. In `Name` add `targetkey` with in the `Value` the (newly) created API Key (from EspoCRM API User)
+9. For each question, add a `Custom HTTP Header` that specifies which Kobo questions responds to which entity and field EspoCRM:
+   1. The header `Name` (left) must correspond to the Kobo question **name**. (You can check the Kobo question name by going into edit mode of the form, open 'Settings' of the specific question and inspect the `Data Column Name`. Also, the Kobo question names can be found in the 'Data' table with previous submissions. This Kobo question name is different from the [Kobo question label](https://support.kobotoolbox.org/getting_started_xlsform.html#adding-questions) and can not contain spaces or symbols (except the underscore).)
+   2. The header value (right) must correspond to the EspoCRM entity **name**, followed by a dot (`.`), followed by the specific field **name**. Example: `Contact.name`. (EspoCRM name is different from the EspoCRM label, similar to the difference between Kobo question name and Kobo question label)
 
-_Nota bene_:
-
-- The header name (left) must correspond to the Kobo question name.
-- The header value (right) must correspond to the EspoCRM entity name, followed by a dot (`.`), followed by the field name. Example: `Contact.name`.
+#### Extra steps for adding Multi-Enums, Attachments and Updating records (not mandatory):
 - If you have a question of type `Select Many` (`select_multiple`) in Kobo and you want to save it in a field of type `Multi-Enum` in EspoCRM, add `multi.` before the Kobo question name in the header name (see screenshot below). 
 - If you need to send **attachments** (e.g. images) to to EspoCRM, add a `Custom HTTP Header` called `kobotoken` with your API token (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token)).
 - If you need to **update** a pre-existing record:
   - add a question of type `calculate` called `updaterecordby` in the kobo form, whcih will contain the value of the field which you will use to identify the record;
   - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
-- The API User in EspoCRM must have a role with `Create` permissions on the target entity; if you need to update records, also `Read` and `Edit`.
+
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/26323051/06de75f3-d02d-4f9f-bb82-db6736542cf5" width="500">
 
