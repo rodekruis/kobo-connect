@@ -371,7 +371,6 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
         get_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/{hookId}"
         hook = requests.get(get_url, auth=auth)
         hook = hook.json()
-        print(hook)
         hook["name"]="duplicate of " + hook["name"]
         def remove_keys(data, keys_to_remove):
             # Remove the specified keys
