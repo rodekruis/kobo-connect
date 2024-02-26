@@ -339,9 +339,10 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     return JSONResponse(status_code=response.status_code, content=target_response)
 
 @app.post("/create-kobo-headers")
-async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str):
-    """Utility endpoint to automatically create the necessary headers in Kobo.
-    Does only support the IFRC server kobonew.ifrc.org"""
+async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str, hookId: str = None):
+    """Utility endpoint to automatically create the necessary headers in Kobo. \n
+    Does only support the IFRC server kobonew.ifrc.org \n
+    ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
     
     if json_data is None:
         raise HTTPException(status_code=400, detail="JSON data is required")
@@ -349,7 +350,8 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
     target_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
     auth = (kobouser, kobopassword)
 
-    payload = {
+    if hookId is None:
+        payload = {
         "name": "koboconnect",
         "endpoint": f"https://kobo-connect.azurewebsites.net/kobo-to-{system}",
         "active": True,
@@ -362,9 +364,22 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
             }
         },
         "payload_template": ""
-    }
+        }
 
-    payload["settings"]["custom_headers"] = json_data
+        payload["settings"]["custom_headers"] = json_data
+    else:
+        get_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/{hookId}"
+        hook = requests.get(get_url, auth=auth)
+        hook = hook.json()
+        hook["name"]="Duplicate of " + hook["name"]
+        def remove_keys(data, keys_to_remove):
+            for key in keys_to_remove:
+                if key in data:
+                    del data[key]
+            return data
+        
+        keys_to_remove = ["url","logs_url", "asset", "uid", "success_count","failed_count","pending_count","date_modified"]
+        payload = remove_keys(hook,keys_to_remove)
 
     response = requests.post(target_url, auth=auth, json=payload)
 
