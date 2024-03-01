@@ -46,13 +46,13 @@ app = FastAPI(
 )
 
 # initialize CosmosDB
-client = cosmos_client.CosmosClient(
+client_ = cosmos_client.CosmosClient(
     os.getenv('COSMOS_URL'),
     {'masterKey': os.getenv('COSMOS_KEY')},
     user_agent="kobo-connect",
     user_agent_overwrite=True
 )
-cosmos_db = client.get_database_client('kobo-connect')
+cosmos_db = client_.get_database_client('kobo-connect')
 cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
 
 
@@ -82,12 +82,19 @@ def add_submission(kobo_data):
     return submission
 
 
-def update_submission_status(submission, status):
+def update_submission_status(submission, status, error_message=None):
+    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
     submission['status'] = status
+    submission['error_message'] = error_message
     cosmos_container_client.replace_item(
         item=str(submission['id']),
         body=submission
     )
+    if error_message is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=error_message
+        )
 
 
 class system(str, Enum):
@@ -137,6 +144,15 @@ def clean_kobo_data(kobo_data):
         new_key = key.split('/')[-1]
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
     return kobo_data_clean
+
+
+def espo_request(submission, espo_client, method, action, params=None):
+    """Make a request to EspoCRM. If the request fails, update submission status in CosmosDB."""
+    try:
+        response = espo_client.request(method, action, params)
+        return response
+    except HTTPException as e:
+        update_submission_status(submission, 'failed', e.detail)
 
 
 @app.get("/", include_in_schema=False)
@@ -204,11 +220,10 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             else:
                 file_url = attachments[kobo_value_url]['url']
                 if 'kobotoken' not in request.headers.keys():
-                    update_submission_status(submission, 'failed')
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"'kobotoken' needs to be specified in headers to upload attachments to EspoCRM"
-                    )
+                    update_submission_status(submission, 'failed',
+                                             f"'kobotoken' needs to be specified in headers"
+                                             f" to upload attachments to EspoCRM")
+                    
                 # encode attachment in base64
                 file = get_kobo_attachment(file_url, request.headers['kobotoken'])
                 file_b64 = base64.b64encode(file).decode("utf8")
@@ -221,7 +236,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                     "field": target_field,
                     "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
                 }
-                attachment_record = client.request('POST', 'Attachment', attachment_payload)
+                attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
                 # link field to attachment
                 payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
@@ -230,7 +245,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             logger.info(payload)
             if not update_record:
                 # create new record of target entity
-                response = client.request('POST', target_entity, payload[target_entity])
+                response = espo_request(submission, client, 'POST', target_entity, payload[target_entity])
             elif target_entity in update_record_payload.keys():
                 # find target record
                 params = {"where": [{
@@ -238,32 +253,23 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                             "attribute": update_record_payload[target_entity]['field'],
                             "value": update_record_payload[target_entity]['value']
                 }]}
-                records = client.request('GET', target_entity, params)['list']
+                records = espo_request(submission, client, 'GET', target_entity, params)['list']
                 if len(records) != 1:
-                    update_submission_status(submission, 'failed')
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Found {len(records)} records of entity {target_entity} "
-                               f"with field {update_record_payload[target_entity]['field']} "
-                               f"equal to {update_record_payload[target_entity]['value']}"
-                    )
+                    update_submission_status(submission, 'failed',
+                                             f"Found {len(records)} records of entity {target_entity} "
+                                             f"with field {update_record_payload[target_entity]['field']} "
+                                             f"equal to {update_record_payload[target_entity]['value']}")
                 else:
                     # update target record
-                    response = client.request('PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
+                    response = espo_request(submission, client, 'PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
             if 'id' not in response.keys():
-                update_submission_status(submission, 'failed')
-                raise HTTPException(
-                    status_code=500,
-                    detail=response.content.decode("utf-8")
-                )
+                update_submission_status(submission, 'failed', response.content.decode("utf-8"))
             else:
                 target_response[target_entity] = response
     else:
-        update_submission_status(submission, 'failed')
-        raise HTTPException(
-            status_code=400,
-            detail=f"EspoCRM client needs the entity name to be specified in headers as '<entity>.<field>'"
-        )
+        update_submission_status(submission, 'failed',
+                                 f"EspoCRM client needs the entity name to be specified"
+                                 f" in headers as '<entity>.<field>'")
     update_submission_status(submission, 'success')
     return JSONResponse(status_code=200, content=target_response)
 
