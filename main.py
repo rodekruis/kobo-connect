@@ -75,9 +75,9 @@ def add_submission(kobo_data):
                 detail=f"Submission is still being processed."
             )
         elif submission['status'] == 'success':
-            raise HTTPException(
-                status_code=400,
-                detail=f"Submission has already been successfully processed."
+            return JSONResponse(
+                status_code=200,
+                content={"detail": "Submission has already been successfully processed."}
             )
     return submission
 
