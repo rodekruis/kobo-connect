@@ -90,7 +90,7 @@ def update_submission_status(submission, status, error_message=None):
         item=str(submission['id']),
         body=submission
     )
-    if error_message is not None:
+    if status == 'failed':
         raise HTTPException(
             status_code=400,
             detail=error_message
