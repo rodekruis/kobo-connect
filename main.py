@@ -14,6 +14,7 @@ from enum import Enum
 import base64
 import logging
 import sys
+import unicodedata
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
@@ -145,6 +146,12 @@ def clean_kobo_data(kobo_data):
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
     return kobo_data_clean
 
+def clean_text(text):
+    # Normalize text to remove accents
+    normalized_text = unicodedata.normalize('NFD', text)
+    # Remove accents and convert to lowercase
+    cleaned_text = ''.join(c for c in normalized_text if not unicodedata.combining(c)).lower()
+    return cleaned_text
 
 def espo_request(submission, espo_client, method, action, params=None):
     """Make a request to EspoCRM. If the request fails, update submission status in CosmosDB."""
@@ -309,6 +316,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
             kobo_value = kobo_data[kobo_field].replace(" ", "_")
             if target_field in intvalues:
                 payload[target_field] = int(kobo_data[kobo_field])
+            elif target_field == 'scope':
+                payload[target_field] = clean_text(kobo_data[kobo_field])
             elif kobo_value not in attachments.keys():
                 payload[target_field] = kobo_data[kobo_field]
             else:
