@@ -347,13 +347,13 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str, hookId: str = None):
     """Utility endpoint to automatically create the necessary headers in Kobo. \n
-    Does only support the IFRC server kobonew.ifrc.org \n
+    Does only support the IFRC server kobo.ifrc.org \n
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
     
     if json_data is None:
         raise HTTPException(status_code=400, detail="JSON data is required")
     
-    target_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
+    target_url = f"https://kobo.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
     auth = (kobouser, kobopassword)
 
     if hookId is None:
@@ -374,7 +374,7 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
 
         payload["settings"]["custom_headers"] = json_data
     else:
-        get_url = f"https://kobonew.ifrc.org/api/v2/assets/{koboassetId}/hooks/{hookId}"
+        get_url = f"https://kobo.ifrc.org/api/v2/assets/{koboassetId}/hooks/{hookId}"
         hook = requests.get(get_url, auth=auth)
         hook = hook.json()
         hook["name"]="Duplicate of " + hook["name"]
