@@ -75,11 +75,6 @@ def add_submission(kobo_data):
                 status_code=400,
                 detail=f"Submission is still being processed."
             )
-        elif submission['status'] == 'success':
-            return JSONResponse(
-                status_code=200,
-                content={"detail": "Submission has already been successfully processed."}
-            )
     return submission
 
 
@@ -177,6 +172,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
 
     # store the submission uuid and status, to avoid duplicate submissions
     submission = add_submission(kobo_data)
+    if submission['status'] == 'success':
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Submission has already been successfully processed."}
+        )
     
     kobo_data = clean_kobo_data(kobo_data)
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
