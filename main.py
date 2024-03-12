@@ -255,10 +255,10 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         
     for target_entity in payload.keys():
         logger.info(payload)
-        if not update_record:
+        if target_entity not in update_record_payload.keys():
             # create new record of target entity
             response = espo_request(submission, client, 'POST', target_entity, payload[target_entity])
-        elif target_entity in update_record_payload.keys():
+        else:
             # find target record
             params = {"where": [{
                         "type": "contains",
