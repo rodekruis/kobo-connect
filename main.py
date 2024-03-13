@@ -57,7 +57,14 @@ cosmos_db = client_.get_database_client('kobo-connect')
 cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
 
 
+@app.get("/", include_in_schema=False)
+async def docs_redirect():
+    """Redirect base URL to docs."""
+    return RedirectResponse(url='/docs')
+
+
 def add_submission(kobo_data):
+    """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
     submission = {
         'id': str(kobo_data['_uuid']),
         'uuid': str(kobo_data['formhub/uuid']),
@@ -93,27 +100,8 @@ def update_submission_status(submission, status, error_message=None):
         )
 
 
-class system(str, Enum):
-    system_generic = "generic"
-    system_espo = "espocrm"
-    system_121 = "121"
-
-
-def required_headers(
-        targeturl: str = Header(),
-        targetkey: str = Header()):
-    return targeturl, targetkey
-
-
-def required_headers_121(
-        url121: str = Header(),
-        username121: str = Header(),
-        password121: str = Header()):
-    return url121, username121, password121
-
-
 def get_kobo_attachment(URL, kobo_token):
-    # Get attachment from kobo
+    """Get attachment from kobo"""
     headers = {'Authorization': f'Token {kobo_token}'}
     data_request = requests.get(URL, headers=headers)
     data = data_request.content
@@ -134,6 +122,7 @@ def get_attachment_dict(kobo_data):
 
 
 def clean_kobo_data(kobo_data):
+    """Clean Kobo data by removing group names and converting keys to lowercase."""
     kobo_data_clean = {k.lower(): v for k, v in kobo_data.items()}
     # remove group names
     for key in list(kobo_data_clean.keys()):
@@ -141,12 +130,6 @@ def clean_kobo_data(kobo_data):
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
     return kobo_data_clean
 
-def clean_text(text):
-    # Normalize text to remove accents
-    normalized_text = unicodedata.normalize('NFD', text)
-    # Remove accents and convert to lowercase
-    cleaned_text = ''.join(c for c in normalized_text if not unicodedata.combining(c)).lower()
-    return cleaned_text
 
 def espo_request(submission, espo_client, method, action, params=None):
     """Make a request to EspoCRM. If the request fails, update submission status in CosmosDB."""
@@ -157,14 +140,14 @@ def espo_request(submission, espo_client, method, action, params=None):
         update_submission_status(submission, 'failed', e.detail)
 
 
-@app.get("/", include_in_schema=False)
-async def docs_redirect():
-    """Redirect base URL to docs."""
-    return RedirectResponse(url='/docs')
+def required_headers_espocrm(
+        targeturl: str = Header(),
+        targetkey: str = Header()):
+    return targeturl, targetkey
 
 
 @app.post("/kobo-to-espocrm")
-async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers)):
+async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers_espocrm)):
     """Send a Kobo submission to EspoCRM."""
 
     kobo_data = await request.json()
@@ -183,11 +166,10 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     attachments = get_attachment_dict(kobo_data)
 
     # check if records need to be updated
-    update_record, update_record_payload = False, {}
+    update_record_payload = {}
     if 'updaterecordby' in request.headers.keys():
         if 'updaterecordby' in kobo_data.keys():
             if kobo_data['updaterecordby'] != "" and kobo_data['updaterecordby'] is not None:
-                update_record = True
                 update_record_entity = request.headers['updaterecordby'].split('.')[0]
                 update_record_field = request.headers['updaterecordby'].split('.')[1]
                 update_record_payload[update_record_entity] = {
@@ -200,10 +182,18 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     payload, target_entity = {}, ""
     for kobo_field, target_field in request.headers.items():
         
-        multi = False
+        kobo_value, multi, repeat, repeat_no, repeat_question = "", False, False, 0, ""
+
+        # determine if kobo_field is of type multi or repeat
         if "multi." in kobo_field:
             kobo_field = kobo_field.split(".")[1]
             multi = True
+        if "repeat." in kobo_field:
+            split = kobo_field.split(".")
+            kobo_field = split[1]
+            repeat_no = int(split[2])
+            repeat_question = split[3]
+            repeat = True
             
         # check if kobo_field is in submission
         if kobo_field not in kobo_data.keys():
@@ -218,11 +208,22 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         else:
             continue
 
+        # get kobo_value based on kobo_field type
         if multi:
             kobo_value = kobo_data[kobo_field].split(" ")
+        elif repeat:
+            if 0 <= repeat_no < len(kobo_data[kobo_field]):
+                kobo_data[kobo_field][repeat_no] = clean_kobo_data(kobo_data[kobo_field][repeat_no])
+                if repeat_question not in kobo_data[kobo_field][repeat_no].keys():
+                    continue
+                kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
+            else:
+                continue
         else:
             kobo_value = kobo_data[kobo_field]
-        kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
+            
+        # process individual field; if it's an attachment, upload it to EspoCRM
+        kobo_value_url = str(kobo_value).replace(" ", "_")
         if kobo_value_url not in attachments.keys():
             payload[target_entity][target_field] = kobo_value
         else:
@@ -281,6 +282,23 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
     
     update_submission_status(submission, 'success')
     return JSONResponse(status_code=200, content=target_response)
+
+########################################################################################################################
+
+
+def clean_text(text):
+    # Normalize text to remove accents
+    normalized_text = unicodedata.normalize('NFD', text)
+    # Remove accents and convert to lowercase
+    cleaned_text = ''.join(c for c in normalized_text if not unicodedata.combining(c)).lower()
+    return cleaned_text
+
+
+def required_headers_121(
+        url121: str = Header(),
+        username121: str = Header(),
+        password121: str = Header()):
+    return url121, username121, password121
 
 
 @app.post("/kobo-to-121")
@@ -355,6 +373,15 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     return JSONResponse(status_code=response.status_code, content=target_response)
 
+########################################################################################################################
+
+
+class system(str, Enum):
+    system_generic = "generic"
+    system_espo = "espocrm"
+    system_121 = "121"
+    
+    
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(json_data: dict, system: system, kobouser: str, kobopassword: str, koboassetId: str, hookId: str = None):
     """Utility endpoint to automatically create the necessary headers in Kobo. \n
@@ -405,9 +432,11 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
     else:
         return JSONResponse(content={"message": "Failed to post data to the target endpoint"}, status_code=response.status_code)
 
+########################################################################################################################
+
 
 @app.post("/kobo-to-generic")
-async def kobo_to_generic(request: Request, dependencies=Depends(required_headers)):
+async def kobo_to_generic(request: Request):
     """Send a Kobo submission to a generic API.
      API Key is passed as 'x-api-key' in headers."""
 

@@ -8,42 +8,55 @@ Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.or
 
 Details: see [the docs](https://kobo-connect.azurewebsites.net/docs).
 
-## API Usage
-
-### EspoCRM
+## EspoCRM
 
 Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_espocrm_kobo_to_espocrm_post) endpoint, it is possible to save a Kobo submission as one or more entities in [EspoCRM](https://www.espocrm.com/). 
 
-#### Steps to connect Kobo to EspoCRM (see also screenshot below):
+### Basic setup
 
 1. Define which questions in the Kobo form need to be saved in which entity and field in EspoCRM.
 2. In EspoCRM,
-   1. Create a role (Administration>Roles), set `Access` to the target entity on `enabled`, with the permission on `yes` to `Create` (if you need to update records, also add `Read` and `Edit`)
-   2. Create an API user (Administration>API Users), give it a descriptive `User Name`, select the previously created role, make sure `Is Active` is checked and that `Authentication Method` is `API Key`. After saving, you will see a newly created API Key which is needed for the next step.
+   - Create a role (Administration>Roles), set `Access` to the target entity on `enabled`, with the permission on `yes` to `Create` (if you need to update records, also add `Read` and `Edit`).
+   - Create an API user (Administration>API Users), give it a descriptive `User Name`, select the previously created role, make sure `Is Active` is checked and that `Authentication Method` is `API Key`. After saving, you will see a newly created API Key which is needed for the next step.
 3. [Register a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html) for the Kobo form of interest and give it a descriptive name.
 4. Insert as `Endpoint URL`
 ```
 https://kobo-connect.azurewebsites.net/kobo-to-espocrm
 ```
 6. In Kobo REST Services, add under `Custom HTTP Headers`:
-   1. In `Name` add `targeturl` with in the `Value` the EspoCRM URL (for example, https://espocrminstancex.com)
-   2. In `Name` add `targetkey` with in the `Value` the (newly) created API Key (from EspoCRM API User)
+   - In `Name` add `targeturl` with in the `Value` the EspoCRM URL (for example, https://espocrminstancex.com).
+   - In `Name` add `targetkey` with in the `Value` the (newly) created API Key (from EspoCRM API User).
 9. For each question, add a `Custom HTTP Header` that specifies which Kobo questions responds to which entity and field EspoCRM:
-   1. The header `Name` (left) must correspond to the Kobo question **name**. (You can check the Kobo question name by going into edit mode of the form, open 'Settings' of the specific question and inspect the `Data Column Name`. Also, the Kobo question names can be found in the 'Data' table with previous submissions. This Kobo question name is different from the [Kobo question label](https://support.kobotoolbox.org/getting_started_xlsform.html#adding-questions) and can not contain spaces or symbols (except the underscore).)
-   2. The header value (right) must correspond to the EspoCRM entity **name**, followed by a dot (`.`), followed by the specific field **name**. Example: `Contact.name`. (EspoCRM name is different from the EspoCRM label, similar to the difference between Kobo question name and Kobo question label)
+   - The header `Name` (left) must correspond to the Kobo question **name**. (You can check the Kobo question name by going into edit mode of the form, open 'Settings' of the specific question and inspect the `Data Column Name`. Also, the Kobo question names can be found in the 'Data' table with previous submissions. This Kobo question name is different from the [Kobo question label](https://support.kobotoolbox.org/getting_started_xlsform.html#adding-questions) and can not contain spaces or symbols (except the underscore).).
+   - The header value (right) must correspond to the EspoCRM entity **name**, followed by a dot (`.`), followed by the specific field **name**. Example: `Contact.name`. (EspoCRM name is different from the EspoCRM label, similar to the difference between Kobo question name and Kobo question label).
 
-#### Extra steps for adding Multi-Enums, Attachments and Updating records (not mandatory):
-- If you have a question of type `Select Many` (`select_multiple`) in Kobo and you want to save it in a field of type `Multi-Enum` in EspoCRM, add `multi.` before the Kobo question name in the header name (see screenshot below). 
-- If you need to send **attachments** (e.g. images) to to EspoCRM, add a `Custom HTTP Header` called `kobotoken` with your API token (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token)).
-- If you need to **update** a pre-existing record:
-  - add a question of type `calculate` called `updaterecordby` in the kobo form, whcih will contain the value of the field which you will use to identify the record;
-  - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
-
+> [!IMPORTANT]  
+> If you need to send **attachments** (e.g. images) to EspoCRM, add a `Custom HTTP Header` called `kobotoken` with your API token (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token)).
 
 <img src="https://github.com/rodekruis/kobo-connect/assets/26323051/06de75f3-d02d-4f9f-bb82-db6736542cf5" width="500">
 
+### Advanced setup: select many, repeat groups, etc.
 
-### 121
+- If you have a question of type `Select Many` (`select_multiple`) in Kobo and you want to save it in a field of type `Multi-Enum` in EspoCRM, add `multi.` before the Kobo question name in the header name.
+  - Example header: `multi.multiquestion1`: `Entity.field1`
+- If you have a **repeating group** of questions in Kobo:
+  - you will need to save each repeated question in a different field in EspoCRM;
+  - in the header name:
+    - add `repeat.`, followed by the Kobo group;
+    - then add a number to specify the number of the repeated question (starting from 0);
+    - then add the name of the repeated question after the number;
+  - in the header value:
+    - as before, use the entity name, followed by a dot (`.`), followed by the field name in EspoCRM.
+  - Example headers:
+    - `repeat.repeatedgroup.0.repeatedquestion`: `Entity.field1`
+    - `repeat.repeatedgroup.1.repeatedquestion`: `Entity.field2`
+  - Not all repeated questions need to be filled in nor saved to EspoCRM.
+- If you need to **update** a pre-existing record:
+  - add a question of type `calculate` called `updaterecordby` in the kobo form, which will contain the value of the field which you will use to identify the record;
+  - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
+
+
+## 121
 
 Using the [`kobo-to-121`](https://kobo-connect.azurewebsites.net/docs#/default/kobo_to_121_kobo_to_121_post) endpoint, it is possible to save a Kobo submission as a Person Affected (PA) registration in the [121 Portal](https://www.121.global/).
 
@@ -58,7 +71,7 @@ Step by step:
 
 _Special Headers_:
 
-- The headers `url121` is required and corresponds the the url of the 121 instance (without trailing `/`, so e.g. https://staging.121.global)
+- The headers `url121` is required and corresponds the url of the 121 instance (without trailing `/`, so e.g. https://staging.121.global)
 - Headers `username121` and `password121`, corresponding to the 121 username and the 121 password respectively, must be included as well.
 - If `programid` is included as a (select one) question, the `XML Value` of the question in kobo needs to be the corresponding number in the 121 portal, the label can be something else, see below
   ![programId](https://github.com/rodekruis/kobo-connect/assets/39266480/1b0ccf53-2740-4432-b31e-d5cb57d2aac5)
@@ -72,7 +85,7 @@ See below for an example configuration, in which programId was not included as a
 #### Nota Bene
 The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
 
-### Create headers endpoint
+## Create headers endpoint
 If you need to map a lot of questions, creating the headers manually is cumbersome. The `/create-kobo-headers` endpoint automates this. It expects 4 query parameters:
 - `system`: required, enum (options: 121, espocrm, generic)
 - `kobouser`: your kobo username
@@ -90,7 +103,7 @@ In the body you can pass all the headers you want to create as key value pairs, 
 
 This endpoint assumes the IFRC kobo server (`https://kobonew.ifrc.org`)
 
-### Generic endpoint
+## Generic endpoint
 
 See [the docs](https://kobo-connect.azurewebsites.net/docs).
 
