@@ -42,8 +42,8 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
 - If you have a **repeating group** of questions in Kobo:
   - you will need to save each repeated question in a different field in EspoCRM;
   - in the header name:
-    - add `repeat.`, followed by the Kobo group;
-    - then add a number to specify the number of the repeated question (starting from 0);
+    - add `repeat.`, followed by the repeating group name, followed by a dot (`.`);
+    - then add a number to specify the number of the repeated question (starting from 0), followed by a dot (`.`);
     - then add the name of the repeated question after the number;
   - in the header value:
     - as before, use the entity name, followed by a dot (`.`), followed by the field name in EspoCRM.
