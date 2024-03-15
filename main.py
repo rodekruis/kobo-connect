@@ -11,8 +11,8 @@ import csv
 import pandas as pd
 from datetime import datetime
 import os
-# from azure.cosmos.exceptions import CosmosResourceExistsError
-# import azure.cosmos.cosmos_client as cosmos_client
+from azure.cosmos.exceptions import CosmosResourceExistsError
+import azure.cosmos.cosmos_client as cosmos_client
 from enum import Enum
 import base64
 import logging
@@ -27,7 +27,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-# logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
 from dotenv import load_dotenv
 load_dotenv()
@@ -49,15 +49,15 @@ app = FastAPI(
     },
 )
 
-# # initialize CosmosDB
-# client_ = cosmos_client.CosmosClient(
-#     os.getenv('COSMOS_URL'),
-#     {'masterKey': os.getenv('COSMOS_KEY')},
-#     user_agent="kobo-connect",
-#     user_agent_overwrite=True
-# )
-# cosmos_db = client_.get_database_client('kobo-connect')
-# cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
+# initialize CosmosDB
+client_ = cosmos_client.CosmosClient(
+    os.getenv('COSMOS_URL'),
+    {'masterKey': os.getenv('COSMOS_KEY')},
+    user_agent="kobo-connect",
+    user_agent_overwrite=True
+)
+cosmos_db = client_.get_database_client('kobo-connect')
+cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
 
 
 @app.get("/", include_in_schema=False)
@@ -66,41 +66,41 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-# def add_submission(kobo_data):
-#     """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
-#     submission = {
-#         'id': str(kobo_data['_uuid']),
-#         'uuid': str(kobo_data['formhub/uuid']),
-#         'status': 'pending'
-#     }
-#     try:
-#         submission = cosmos_container_client.create_item(body=submission)
-#     except CosmosResourceExistsError:
-#         submission = cosmos_container_client.read_item(
-#             item=str(kobo_data['_uuid']),
-#             partition_key=str(kobo_data['formhub/uuid']),
-#         )
-#         if submission['status'] == 'pending':
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail=f"Submission is still being processed."
-#             )
-#     return submission
+def add_submission(kobo_data):
+    """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
+    submission = {
+        'id': str(kobo_data['_uuid']),
+        'uuid': str(kobo_data['formhub/uuid']),
+        'status': 'pending'
+    }
+    try:
+        submission = cosmos_container_client.create_item(body=submission)
+    except CosmosResourceExistsError:
+        submission = cosmos_container_client.read_item(
+            item=str(kobo_data['_uuid']),
+            partition_key=str(kobo_data['formhub/uuid']),
+        )
+        if submission['status'] == 'pending':
+            raise HTTPException(
+                status_code=400,
+                detail=f"Submission is still being processed."
+            )
+    return submission
 
 
-# def update_submission_status(submission, status, error_message=None):
-#     """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
-#     submission['status'] = status
-#     submission['error_message'] = error_message
-#     cosmos_container_client.replace_item(
-#         item=str(submission['id']),
-#         body=submission
-#     )
-#     if status == 'failed':
-#         raise HTTPException(
-#             status_code=400,
-#             detail=error_message
-#         )
+def update_submission_status(submission, status, error_message=None):
+    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
+    submission['status'] = status
+    submission['error_message'] = error_message
+    cosmos_container_client.replace_item(
+        item=str(submission['id']),
+        body=submission
+    )
+    if status == 'failed':
+        raise HTTPException(
+            status_code=400,
+            detail=error_message
+        )
 
 
 def get_kobo_attachment(URL, kobo_token):
@@ -134,157 +134,157 @@ def clean_kobo_data(kobo_data):
     return kobo_data_clean
 
 
-# def espo_request(submission, espo_client, method, action, params=None):
-#     """Make a request to EspoCRM. If the request fails, update submission status in CosmosDB."""
-#     try:
-#         response = espo_client.request(method, action, params)
-#         return response
-#     except HTTPException as e:
-#         update_submission_status(submission, 'failed', e.detail)
+def espo_request(submission, espo_client, method, action, params=None):
+    """Make a request to EspoCRM. If the request fails, update submission status in CosmosDB."""
+    try:
+        response = espo_client.request(method, action, params)
+        return response
+    except HTTPException as e:
+        update_submission_status(submission, 'failed', e.detail)
 
 
-# def required_headers_espocrm(
-#         targeturl: str = Header(),
-#         targetkey: str = Header()):
-#     return targeturl, targetkey
+def required_headers_espocrm(
+        targeturl: str = Header(),
+        targetkey: str = Header()):
+    return targeturl, targetkey
 
 
-# @app.post("/kobo-to-espocrm")
-# async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers_espocrm)):
-#     """Send a Kobo submission to EspoCRM."""
+@app.post("/kobo-to-espocrm")
+async def kobo_to_espocrm(request: Request, dependencies=Depends(required_headers_espocrm)):
+    """Send a Kobo submission to EspoCRM."""
 
-#     kobo_data = await request.json()
-#     target_response = {}
+    kobo_data = await request.json()
+    target_response = {}
 
-#     # store the submission uuid and status, to avoid duplicate submissions
-#     submission = add_submission(kobo_data)
-#     if submission['status'] == 'success':
-#         return JSONResponse(
-#             status_code=200,
-#             content={"detail": "Submission has already been successfully processed."}
-#         )
+    # store the submission uuid and status, to avoid duplicate submissions
+    submission = add_submission(kobo_data)
+    if submission['status'] == 'success':
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Submission has already been successfully processed."}
+        )
     
-#     kobo_data = clean_kobo_data(kobo_data)
-#     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
-#     attachments = get_attachment_dict(kobo_data)
+    kobo_data = clean_kobo_data(kobo_data)
+    client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
+    attachments = get_attachment_dict(kobo_data)
 
-#     # check if records need to be updated
-#     update_record_payload = {}
-#     if 'updaterecordby' in request.headers.keys():
-#         if 'updaterecordby' in kobo_data.keys():
-#             if kobo_data['updaterecordby'] != "" and kobo_data['updaterecordby'] is not None:
-#                 update_record_entity = request.headers['updaterecordby'].split('.')[0]
-#                 update_record_field = request.headers['updaterecordby'].split('.')[1]
-#                 update_record_payload[update_record_entity] = {
-#                     'field': update_record_field,
-#                     'value': kobo_data['updaterecordby']
-#                 }
-#             kobo_data.pop('updaterecordby')
+    # check if records need to be updated
+    update_record_payload = {}
+    if 'updaterecordby' in request.headers.keys():
+        if 'updaterecordby' in kobo_data.keys():
+            if kobo_data['updaterecordby'] != "" and kobo_data['updaterecordby'] is not None:
+                update_record_entity = request.headers['updaterecordby'].split('.')[0]
+                update_record_field = request.headers['updaterecordby'].split('.')[1]
+                update_record_payload[update_record_entity] = {
+                    'field': update_record_field,
+                    'value': kobo_data['updaterecordby']
+                }
+            kobo_data.pop('updaterecordby')
 
-#     # Create API payload body
-#     payload, target_entity = {}, ""
-#     for kobo_field, target_field in request.headers.items():
+    # Create API payload body
+    payload, target_entity = {}, ""
+    for kobo_field, target_field in request.headers.items():
         
-#         kobo_value, multi, repeat, repeat_no, repeat_question = "", False, False, 0, ""
+        kobo_value, multi, repeat, repeat_no, repeat_question = "", False, False, 0, ""
 
-#         # determine if kobo_field is of type multi or repeat
-#         if "multi." in kobo_field:
-#             kobo_field = kobo_field.split(".")[1]
-#             multi = True
-#         if "repeat." in kobo_field:
-#             split = kobo_field.split(".")
-#             kobo_field = split[1]
-#             repeat_no = int(split[2])
-#             repeat_question = split[3]
-#             repeat = True
+        # determine if kobo_field is of type multi or repeat
+        if "multi." in kobo_field:
+            kobo_field = kobo_field.split(".")[1]
+            multi = True
+        if "repeat." in kobo_field:
+            split = kobo_field.split(".")
+            kobo_field = split[1]
+            repeat_no = int(split[2])
+            repeat_question = split[3]
+            repeat = True
             
-#         # check if kobo_field is in submission
-#         if kobo_field not in kobo_data.keys():
-#             continue
+        # check if kobo_field is in submission
+        if kobo_field not in kobo_data.keys():
+            continue
             
-#         # check if entity is nested in target_field
-#         if len(target_field.split('.')) == 2:
-#             target_entity = target_field.split('.')[0]
-#             target_field = target_field.split('.')[1]
-#             if target_entity not in payload.keys():
-#                 payload[target_entity] = {}
-#         else:
-#             continue
+        # check if entity is nested in target_field
+        if len(target_field.split('.')) == 2:
+            target_entity = target_field.split('.')[0]
+            target_field = target_field.split('.')[1]
+            if target_entity not in payload.keys():
+                payload[target_entity] = {}
+        else:
+            continue
 
-#         # get kobo_value based on kobo_field type
-#         if multi:
-#             kobo_value = kobo_data[kobo_field].split(" ")
-#         elif repeat:
-#             if 0 <= repeat_no < len(kobo_data[kobo_field]):
-#                 kobo_data[kobo_field][repeat_no] = clean_kobo_data(kobo_data[kobo_field][repeat_no])
-#                 if repeat_question not in kobo_data[kobo_field][repeat_no].keys():
-#                     continue
-#                 kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
-#             else:
-#                 continue
-#         else:
-#             kobo_value = kobo_data[kobo_field]
+        # get kobo_value based on kobo_field type
+        if multi:
+            kobo_value = kobo_data[kobo_field].split(" ")
+        elif repeat:
+            if 0 <= repeat_no < len(kobo_data[kobo_field]):
+                kobo_data[kobo_field][repeat_no] = clean_kobo_data(kobo_data[kobo_field][repeat_no])
+                if repeat_question not in kobo_data[kobo_field][repeat_no].keys():
+                    continue
+                kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
+            else:
+                continue
+        else:
+            kobo_value = kobo_data[kobo_field]
             
-#         # process individual field; if it's an attachment, upload it to EspoCRM
-#         kobo_value_url = str(kobo_value).replace(" ", "_")
-#         if kobo_value_url not in attachments.keys():
-#             payload[target_entity][target_field] = kobo_value
-#         else:
-#             file_url = attachments[kobo_value_url]['url']
-#             if 'kobotoken' not in request.headers.keys():
-#                 update_submission_status(submission, 'failed',
-#                                          f"'kobotoken' needs to be specified in headers"
-#                                          f" to upload attachments to EspoCRM")
+        # process individual field; if it's an attachment, upload it to EspoCRM
+        kobo_value_url = str(kobo_value).replace(" ", "_")
+        if kobo_value_url not in attachments.keys():
+            payload[target_entity][target_field] = kobo_value
+        else:
+            file_url = attachments[kobo_value_url]['url']
+            if 'kobotoken' not in request.headers.keys():
+                update_submission_status(submission, 'failed',
+                                         f"'kobotoken' needs to be specified in headers"
+                                         f" to upload attachments to EspoCRM")
                 
-#             # encode attachment in base64
-#             file = get_kobo_attachment(file_url, request.headers['kobotoken'])
-#             file_b64 = base64.b64encode(file).decode("utf8")
-#             # upload attachment to target
-#             attachment_payload = {
-#                 "name": kobo_value,
-#                 "type": attachments[kobo_value_url]['mimetype'],
-#                 "role": "Attachment",
-#                 "relatedType": target_entity,
-#                 "field": target_field,
-#                 "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
-#             }
-#             attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
-#             # link field to attachment
-#             payload[target_entity][f"{target_field}Id"] = attachment_record['id']
+            # encode attachment in base64
+            file = get_kobo_attachment(file_url, request.headers['kobotoken'])
+            file_b64 = base64.b64encode(file).decode("utf8")
+            # upload attachment to target
+            attachment_payload = {
+                "name": kobo_value,
+                "type": attachments[kobo_value_url]['mimetype'],
+                "role": "Attachment",
+                "relatedType": target_entity,
+                "field": target_field,
+                "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
+            }
+            attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
+            # link field to attachment
+            payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
-#     if len(payload) == 0:
-#         update_submission_status(submission, 'failed',
-#                                  f"No fields found in Kobo submission or"
-#                                  f" no entities found in headers")
+    if len(payload) == 0:
+        update_submission_status(submission, 'failed',
+                                 f"No fields found in Kobo submission or"
+                                 f" no entities found in headers")
         
-#     for target_entity in payload.keys():
-#         logger.info(payload)
-#         if target_entity not in update_record_payload.keys():
-#             # create new record of target entity
-#             response = espo_request(submission, client, 'POST', target_entity, payload[target_entity])
-#         else:
-#             # find target record
-#             params = {"where": [{
-#                         "type": "contains",
-#                         "attribute": update_record_payload[target_entity]['field'],
-#                         "value": update_record_payload[target_entity]['value']
-#             }]}
-#             records = espo_request(submission, client, 'GET', target_entity, params)['list']
-#             if len(records) != 1:
-#                 update_submission_status(submission, 'failed',
-#                                          f"Found {len(records)} records of entity {target_entity} "
-#                                          f"with field {update_record_payload[target_entity]['field']} "
-#                                          f"equal to {update_record_payload[target_entity]['value']}")
-#             else:
-#                 # update target record
-#                 response = espo_request(submission, client, 'PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
-#         if 'id' not in response.keys():
-#             update_submission_status(submission, 'failed', response.content.decode("utf-8"))
-#         else:
-#             target_response[target_entity] = response
+    for target_entity in payload.keys():
+        logger.info(payload)
+        if target_entity not in update_record_payload.keys():
+            # create new record of target entity
+            response = espo_request(submission, client, 'POST', target_entity, payload[target_entity])
+        else:
+            # find target record
+            params = {"where": [{
+                        "type": "contains",
+                        "attribute": update_record_payload[target_entity]['field'],
+                        "value": update_record_payload[target_entity]['value']
+            }]}
+            records = espo_request(submission, client, 'GET', target_entity, params)['list']
+            if len(records) != 1:
+                update_submission_status(submission, 'failed',
+                                         f"Found {len(records)} records of entity {target_entity} "
+                                         f"with field {update_record_payload[target_entity]['field']} "
+                                         f"equal to {update_record_payload[target_entity]['value']}")
+            else:
+                # update target record
+                response = espo_request(submission, client, 'PUT', f"{target_entity}/{records[0]['id']}", payload[target_entity])
+        if 'id' not in response.keys():
+            update_submission_status(submission, 'failed', response.content.decode("utf-8"))
+        else:
+            target_response[target_entity] = response
     
-#     update_submission_status(submission, 'success')
-#     return JSONResponse(status_code=200, content=target_response)
+    update_submission_status(submission, 'success')
+    return JSONResponse(status_code=200, content=target_response)
 
 ########################################################################################################################
 
