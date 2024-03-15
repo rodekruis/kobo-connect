@@ -1,0 +1,17 @@
+kobotype	121type
+integer	numeric
+decimal	numeric
+range	numeric
+text	text
+select_one	dropdown
+select_multiple	text
+geopoint	text
+geotrace	text
+geoshape	text
+date	text
+time	text
+dateTime	text
+image	text
+calculate	text
+hidden	text
+tel	tel
