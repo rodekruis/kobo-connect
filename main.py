@@ -450,7 +450,7 @@ def required_headers_121_kobo(
 @app.post("/create-121-program-from-kobo")
 async def create_121_program_from_kobo(request: Request, dependencies=Depends(required_headers_121_kobo)):
     """Utility endpoint to automatically create a 121 Program in 121 from a koboform, including REST Service \n
-    Does only support the IFRC server kobonew.ifrc.org \n
+    Does only support the IFRC server kobo.ifrc.org \n
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
     
     koboUrl = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}"
@@ -493,7 +493,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
     lookupdict = dict(zip(survey['name'], survey['default']))
 
     if 'tags'in survey.columns:
-        dedupedict =  dict(zip(survey['name'], survey['tags']))
+        dedupedict = dict(zip(survey['name'], survey['tags']))
 
         for key, value in dedupedict.items():
             if isinstance(value, list) and any('dedupe' in item for item in value):
@@ -502,7 +502,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
                 dedupedict[key] = False
     else:
         survey['tags'] = False
-        dedupedict =  dict(zip(survey['name'], survey['tags']))
+        dedupedict = dict(zip(survey['name'], survey['tags']))
 
     # Create the JSON structure
     data = {

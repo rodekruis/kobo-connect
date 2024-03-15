@@ -3,6 +3,7 @@ FROM python:3.9-slim
 
 # copy files to the /app folder in the container
 ADD clients /app/clients
+ADD mappings /app/mappings
 COPY ./main.py /app/main.py
 COPY ./requirements.txt /app/requirements.txt
 
