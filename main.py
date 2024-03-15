@@ -437,14 +437,24 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
 
 ########################################################################################################################
 
-@app.post("/create-121-from-kobo")
-async def create_kobo_headers(request: Request, koboToken: str, koboassetId: str, dependencies=Depends(required_headers_121)):
+
+def required_headers_121_kobo(
+        url121: str = Header(),
+        username121: str = Header(),
+        password121: str = Header(),
+        kobotoken: str = Header(),
+        koboasset: str = Header()):
+    return url121, username121, password121, kobotoken, koboasset
+
+
+@app.post("/create-121-program-from-kobo")
+async def create_121_program_from_kobo(request: Request, dependencies=Depends(required_headers_121_kobo)):
     """Utility endpoint to automatically create a 121 Program in 121 from a koboform, including REST Service \n
     Does only support the IFRC server kobonew.ifrc.org \n
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
     
-    koboUrl = f'https://kobo.ifrc.org/api/v2/assets/{koboassetId}'
-    koboheaders = {'Authorization': f'Token {koboToken}'}
+    koboUrl = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}"
+    koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
     data_request = requests.get(f'{koboUrl}/?format=json', headers=koboheaders)
     if data_request.status_code >= 400:
         raise HTTPException(
@@ -541,7 +551,7 @@ async def create_kobo_headers(request: Request, koboToken: str, koboassetId: str
         "enableScope": False
     }
 
-    koboConnectHeader = ['fspName','preferredLanguage','maxPayments']
+    koboConnectHeader = ['fspName', 'preferredLanguage', 'maxPayments']
 
     for index, row in survey.iterrows():
         if row['type'].split()[0] in mappingdf['kobotype'].tolist() and row['name'] not in CHECKFIELDS:
@@ -645,7 +655,8 @@ async def create_kobo_headers(request: Request, koboToken: str, koboassetId: str
     customHeaders = dict(zip(koboConnectHeader, koboConnectHeader))
     restServicePayload['settings']['custom_headers'] = customHeaders
 
-    kobo_response = requests.post(f'{koboUrl}/hooks/',
+    kobo_response = requests.post(
+        f'{koboUrl}/hooks/',
         headers=koboheaders,
         json=restServicePayload
     )

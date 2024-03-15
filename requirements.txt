@@ -11,6 +11,7 @@ idna==3.4
 lxml==4.9.3
 multidict==6.0.4
 openai==0.27.8
+pandas==2.2.1
 pypdf==3.12.2
 python-docx==0.8.11
 python-dotenv==1.0.0
