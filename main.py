@@ -437,18 +437,13 @@ async def create_kobo_headers(json_data: dict, system: system, kobouser: str, ko
 
 ########################################################################################################################
 
-
-def required_headers_121_kobo(
-        url121: str = Header(),
-        username121: str = Header(),
-        password121: str = Header(),
+def required_headers_kobo(
         kobotoken: str = Header(),
         koboasset: str = Header()):
-    return url121, username121, password121, kobotoken, koboasset
+    return kobotoken, koboasset
 
-
-@app.post("/create-121-program-from-kobo")
-async def create_121_program_from_kobo(request: Request, dependencies=Depends(required_headers_121_kobo)):
+@app.get("/121-program")
+async def create_121_program_from_kobo(request: Request, dependencies=Depends(required_headers_kobo)):
     """Utility endpoint to automatically create a 121 Program in 121 from a koboform, including REST Service \n
     Does only support the IFRC server kobo.ifrc.org \n
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
@@ -617,29 +612,6 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
             }
             data["programQuestions"].append(question)
 
-    # Create program in 121
-    body = {'username': {request.headers['username121']}, 'password': {request.headers['password121']}}
-    url = f"{request.headers['url121']}/api/users/login"
-    login = requests.post(url, data=body)
-    if login.status_code >= 400:
-        raise HTTPException(
-            status_code=login.status_code,
-            detail=login.content.decode("utf-8")
-        )
-    access_token = login.json()['access_token_general']
-
-    # POST to target API
-    response = requests.post(
-        f"{request.headers['url121']}/api/programs",
-        headers={'Cookie': f"access_token_general={access_token}"},
-        json=data
-    )
-    if response.status_code >= 400:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.content.decode("utf-8")
-        )
-
     # Create kobo-connect rest service
     restServicePayload = {
         "name": 'Kobo Connect',
@@ -662,12 +634,12 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
     )
 
     if kobo_response.status_code == 200 or 201:
-        return JSONResponse(content={"message": "Sucess"})
+        return JSONResponse(content=data)
     else:
         return JSONResponse(content={"message": "Failed"}, status_code=response.status_code)
 
 ########################################################################################################################
-
+    
 @app.post("/kobo-to-generic")
 async def kobo_to_generic(request: Request):
     """Send a Kobo submission to a generic API.
