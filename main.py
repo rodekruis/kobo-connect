@@ -11,8 +11,8 @@ import csv
 import pandas as pd
 from datetime import datetime
 import os
-from azure.cosmos.exceptions import CosmosResourceExistsError
-import azure.cosmos.cosmos_client as cosmos_client
+# from azure.cosmos.exceptions import CosmosResourceExistsError
+# import azure.cosmos.cosmos_client as cosmos_client
 from enum import Enum
 import base64
 import logging
@@ -27,7 +27,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("azure").setLevel(logging.WARNING)
+# logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
 from dotenv import load_dotenv
 load_dotenv()
@@ -50,14 +50,14 @@ app = FastAPI(
 )
 
 # initialize CosmosDB
-client_ = cosmos_client.CosmosClient(
-    os.getenv('COSMOS_URL'),
-    {'masterKey': os.getenv('COSMOS_KEY')},
-    user_agent="kobo-connect",
-    user_agent_overwrite=True
-)
-cosmos_db = client_.get_database_client('kobo-connect')
-cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
+# client_ = cosmos_client.CosmosClient(
+#     os.getenv('COSMOS_URL'),
+#     {'masterKey': os.getenv('COSMOS_KEY')},
+#     user_agent="kobo-connect",
+#     user_agent_overwrite=True
+# )
+# cosmos_db = client_.get_database_client('kobo-connect')
+# cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
 
 
 @app.get("/", include_in_schema=False)
@@ -66,41 +66,41 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-def add_submission(kobo_data):
-    """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
-    submission = {
-        'id': str(kobo_data['_uuid']),
-        'uuid': str(kobo_data['formhub/uuid']),
-        'status': 'pending'
-    }
-    try:
-        submission = cosmos_container_client.create_item(body=submission)
-    except CosmosResourceExistsError:
-        submission = cosmos_container_client.read_item(
-            item=str(kobo_data['_uuid']),
-            partition_key=str(kobo_data['formhub/uuid']),
-        )
-        if submission['status'] == 'pending':
-            raise HTTPException(
-                status_code=400,
-                detail=f"Submission is still being processed."
-            )
-    return submission
+# def add_submission(kobo_data):
+#     """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
+#     submission = {
+#         'id': str(kobo_data['_uuid']),
+#         'uuid': str(kobo_data['formhub/uuid']),
+#         'status': 'pending'
+#     }
+#     try:
+#         submission = cosmos_container_client.create_item(body=submission)
+#     except CosmosResourceExistsError:
+#         submission = cosmos_container_client.read_item(
+#             item=str(kobo_data['_uuid']),
+#             partition_key=str(kobo_data['formhub/uuid']),
+#         )
+#         if submission['status'] == 'pending':
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail=f"Submission is still being processed."
+#             )
+#     return submission
 
 
-def update_submission_status(submission, status, error_message=None):
-    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
-    submission['status'] = status
-    submission['error_message'] = error_message
-    cosmos_container_client.replace_item(
-        item=str(submission['id']),
-        body=submission
-    )
-    if status == 'failed':
-        raise HTTPException(
-            status_code=400,
-            detail=error_message
-        )
+# def update_submission_status(submission, status, error_message=None):
+#     """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
+#     submission['status'] = status
+#     submission['error_message'] = error_message
+#     cosmos_container_client.replace_item(
+#         item=str(submission['id']),
+#         body=submission
+#     )
+#     if status == 'failed':
+#         raise HTTPException(
+#             status_code=400,
+#             detail=error_message
+#         )
 
 
 def get_kobo_attachment(URL, kobo_token):
@@ -249,6 +249,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
             }
             attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
+            print(attachment_record.content.decode("utf-8"))
             # link field to attachment
             payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
@@ -349,6 +350,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
             payload[target_field] = ""
 
     payload['referenceId'] = referenceId
+
+    print(payload)
 
     # get access token from cookie
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
@@ -668,6 +671,209 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
 
 ########################################################################################################################
 
+def required_headers_kobo(
+        kobotoken: str = Header(),
+        koboasset: str = Header()):
+    return kobotoken, koboasset
+
+@app.get("/121-program")
+async def create_121_program_from_kobo(request: Request, dependencies=Depends(required_headers_kobo)):
+    """Utility endpoint to automatically create a 121 Program in 121 from a koboform, including REST Service \n
+    Does only support the IFRC server kobo.ifrc.org \n
+    ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***"""
+    
+    koboUrl = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}"
+    koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
+    data_request = requests.get(f'{koboUrl}/?format=json', headers=koboheaders)
+    if data_request.status_code >= 400:
+        raise HTTPException(
+            status_code=data_request.status_code,
+            detail=data_request.content.decode("utf-8")
+        )
+    data = data_request.json()
+
+    survey = pd.DataFrame(data['content']['survey'])
+    choices = pd.DataFrame(data['content']['choices'])
+
+    type_mapping = {}
+    with open('mappings/kobo121fieldtypes.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t')
+        for row in reader:
+            if len(row) == 2:
+                type_mapping[row[0]] = row[1]
+
+    mappingdf = pd.read_csv('mappings/kobo121fieldtypes.csv', delimiter='\t')
+
+    CHECKFIELDS = ['validation', 'phase', 'location', 'ngo', 'language', 'titlePortal', 'description',
+                'startDate', 'endDate', 'currency', 'distributionFrequency', 'distributionDuration', 'fixedTransferValue',
+                'financialServiceProviders', 'targetNrRegistrations', 'tryWhatsAppFirst', 'phoneNumberPlaceholder', 'aboutProgram',
+                'fullnameNamingConvention', 'enableMaxPayments', 'phoneNumber','preferredLanguage','maxPayments','fspName']
+
+    # First check if all setup fields are in the xlsform
+    FIELDNAMES = survey["name"].to_list()
+    MISSINGFIELDS = []
+    for checkfield in CHECKFIELDS:
+        if checkfield not in FIELDNAMES:
+            MISSINGFIELDS.append(checkfield)
+
+    if len(MISSINGFIELDS) != 0:
+        print('Missing hidden fields in the template: ', MISSINGFIELDS)
+
+    lookupdict = dict(zip(survey['name'], survey['default']))
+
+    if 'tags'in survey.columns:
+        dedupedict = dict(zip(survey['name'], survey['tags']))
+
+        for key, value in dedupedict.items():
+            if isinstance(value, list) and any('dedupe' in item for item in value):
+                dedupedict[key] = True
+            else:
+                dedupedict[key] = False
+    else:
+        survey['tags'] = False
+        dedupedict = dict(zip(survey['name'], survey['tags']))
+
+    # Create the JSON structure
+    data = {
+        "published": True,
+        "validation": lookupdict['validation'].upper() == 'TRUE',
+        "phase": lookupdict['phase'],
+        "location": lookupdict['location'],
+        "ngo": lookupdict['ngo'],
+        "titlePortal": {
+            lookupdict['language']: lookupdict['titlePortal']
+        },
+        "titlePaApp": {
+            lookupdict['language']: lookupdict['titlePortal']
+        },
+        "description": {
+            "en": ""
+        },
+        "startDate": datetime.strptime(lookupdict['startDate'], '%d/%m/%Y').isoformat(),
+        "endDate": datetime.strptime(lookupdict['endDate'], '%d/%m/%Y').isoformat(),
+        "currency": lookupdict['currency'],
+        "distributionFrequency": lookupdict['distributionFrequency'],
+        "distributionDuration": int(lookupdict['distributionDuration']),
+        "fixedTransferValue": int(lookupdict['fixedTransferValue']),
+        "paymentAmountMultiplierFormula": "",
+        "financialServiceProviders": [
+            {
+            "fsp": lookupdict['financialServiceProviders']
+            }
+        ],
+        "targetNrRegistrations": int(lookupdict['targetNrRegistrations']),
+        "tryWhatsAppFirst": lookupdict['tryWhatsAppFirst'].upper() == 'TRUE',
+        "phoneNumberPlaceholder": lookupdict['phoneNumberPlaceholder'],
+        "programCustomAttributes": [],
+        "programQuestions": [],
+        "aboutProgram": {
+            lookupdict['language']: lookupdict['aboutProgram']
+        },
+        "fullnameNamingConvention": [
+            lookupdict['fullnameNamingConvention']
+        ],
+        "languages": [
+            lookupdict['language']
+        ],
+        "enableMaxPayments": lookupdict['enableMaxPayments'].upper() == 'TRUE',
+        "allowEmptyPhoneNumber": False,
+        "enableScope": False
+    }
+
+    koboConnectHeader = ['fspName', 'preferredLanguage', 'maxPayments']
+
+    for index, row in survey.iterrows():
+        if row['type'].split()[0] in mappingdf['kobotype'].tolist() and row['name'] not in CHECKFIELDS:
+            koboConnectHeader.append(row['name'])
+            question = {
+                "name": row['name'],
+                "label": {
+                    "en": str(row['label'][0])
+                },
+                "answerType": type_mapping[row['type'].split()[0]],
+                "questionType": "standard",
+                "options": [],
+                "scoring": {},
+                "persistence": True,
+                "pattern": "",
+                "phases": [],
+                "editableInPortal": True,
+                "export": [
+                    "all-people-affected",
+                    "included"
+                ],
+                "shortLabel": {
+                    "en": row['name'],
+                },
+                "duplicateCheck": dedupedict[row['name']],
+                "placeholder": ""
+            }
+            if type_mapping[row['type'].split()[0]] == 'dropdown':
+                filtered_df = choices[choices['list_name'] == row['select_from_list_name']]
+                for index, row in filtered_df.iterrows():
+                    option = {
+                        "option": row['name'],
+                        "label": {
+                            "en": str(row['label'][0])
+                        }
+                    }
+                    question["options"].append(option)
+            data["programQuestions"].append(question)
+        if row['name'] == 'phoneNumber':
+            koboConnectHeader.append('phoneNumber')
+            question = {
+                "name": 'phoneNumber',
+                "label": {
+                    "en": 'Phone Number'
+                },
+                "answerType": "tel",
+                "questionType": "standard",
+                "options": [],
+                "scoring": {},
+                "persistence": True,
+                "pattern": "",
+                "phases": [],
+                "editableInPortal": True,
+                "export": [
+                    "all-people-affected",
+                    "included"
+                ],
+                "shortLabel": {
+                    "en": row['name'],
+                },
+                "duplicateCheck": dedupedict[row['name']],
+                "placeholder": ""
+            }
+            data["programQuestions"].append(question)
+
+    # Create kobo-connect rest service
+    restServicePayload = {
+        "name": 'Kobo Connect',
+        "endpoint": 'https://kobo-connect.azurewebsites.net/kobo-to-121',
+        "active": True,
+        "email_notification": True,
+        "export_type": 'json',
+        "settings": {
+            "custom_headers": {
+            }
+        }
+    }
+    customHeaders = dict(zip(koboConnectHeader, koboConnectHeader))
+    restServicePayload['settings']['custom_headers'] = customHeaders
+
+    kobo_response = requests.post(
+        f'{koboUrl}/hooks/',
+        headers=koboheaders,
+        json=restServicePayload
+    )
+
+    if kobo_response.status_code == 200 or 201:
+        return JSONResponse(content=data)
+    else:
+        return JSONResponse(content={"message": "Failed"}, status_code=response.status_code)
+
+########################################################################################################################
+    
 @app.post("/kobo-to-generic")
 async def kobo_to_generic(request: Request):
     """Send a Kobo submission to a generic API.
