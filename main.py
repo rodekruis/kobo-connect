@@ -249,7 +249,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
             }
             attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
-            print(attachment_record.content.decode("utf-8"))
             # link field to attachment
             payload[target_entity][f"{target_field}Id"] = attachment_record['id']
 
@@ -350,8 +349,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
             payload[target_field] = ""
 
     payload['referenceId'] = referenceId
-
-    print(payload)
 
     # get access token from cookie
     body = {'username': request.headers['username121'], 'password': request.headers['password121']}
