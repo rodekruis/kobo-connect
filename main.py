@@ -11,8 +11,8 @@ import csv
 import pandas as pd
 from datetime import datetime
 import os
-# from azure.cosmos.exceptions import CosmosResourceExistsError
-# import azure.cosmos.cosmos_client as cosmos_client
+from azure.cosmos.exceptions import CosmosResourceExistsError
+import azure.cosmos.cosmos_client as cosmos_client
 from enum import Enum
 import base64
 import logging
@@ -27,7 +27,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-# logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
 from dotenv import load_dotenv
 load_dotenv()
@@ -50,14 +50,14 @@ app = FastAPI(
 )
 
 # initialize CosmosDB
-# client_ = cosmos_client.CosmosClient(
-#     os.getenv('COSMOS_URL'),
-#     {'masterKey': os.getenv('COSMOS_KEY')},
-#     user_agent="kobo-connect",
-#     user_agent_overwrite=True
-# )
-# cosmos_db = client_.get_database_client('kobo-connect')
-# cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
+client_ = cosmos_client.CosmosClient(
+    os.getenv('COSMOS_URL'),
+    {'masterKey': os.getenv('COSMOS_KEY')},
+    user_agent="kobo-connect",
+    user_agent_overwrite=True
+)
+cosmos_db = client_.get_database_client('kobo-connect')
+cosmos_container_client = cosmos_db.get_container_client('kobo-submissions')
 
 
 @app.get("/", include_in_schema=False)
@@ -66,41 +66,41 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-# def add_submission(kobo_data):
-#     """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
-#     submission = {
-#         'id': str(kobo_data['_uuid']),
-#         'uuid': str(kobo_data['formhub/uuid']),
-#         'status': 'pending'
-#     }
-#     try:
-#         submission = cosmos_container_client.create_item(body=submission)
-#     except CosmosResourceExistsError:
-#         submission = cosmos_container_client.read_item(
-#             item=str(kobo_data['_uuid']),
-#             partition_key=str(kobo_data['formhub/uuid']),
-#         )
-#         if submission['status'] == 'pending':
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail=f"Submission is still being processed."
-#             )
-#     return submission
+def add_submission(kobo_data):
+    """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
+    submission = {
+        'id': str(kobo_data['_uuid']),
+        'uuid': str(kobo_data['formhub/uuid']),
+        'status': 'pending'
+    }
+    try:
+        submission = cosmos_container_client.create_item(body=submission)
+    except CosmosResourceExistsError:
+        submission = cosmos_container_client.read_item(
+            item=str(kobo_data['_uuid']),
+            partition_key=str(kobo_data['formhub/uuid']),
+        )
+        if submission['status'] == 'pending':
+            raise HTTPException(
+                status_code=400,
+                detail=f"Submission is still being processed."
+            )
+    return submission
 
 
-# def update_submission_status(submission, status, error_message=None):
-#     """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
-#     submission['status'] = status
-#     submission['error_message'] = error_message
-#     cosmos_container_client.replace_item(
-#         item=str(submission['id']),
-#         body=submission
-#     )
-#     if status == 'failed':
-#         raise HTTPException(
-#             status_code=400,
-#             detail=error_message
-#         )
+def update_submission_status(submission, status, error_message=None):
+    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
+    submission['status'] = status
+    submission['error_message'] = error_message
+    cosmos_container_client.replace_item(
+        item=str(submission['id']),
+        body=submission
+    )
+    if status == 'failed':
+        raise HTTPException(
+            status_code=400,
+            detail=error_message
+        )
 
 
 def get_kobo_attachment(URL, kobo_token):
