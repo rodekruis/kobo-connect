@@ -111,16 +111,24 @@ def get_kobo_attachment(URL, kobo_token):
     return data
 
 
-def get_attachment_dict(kobo_data):
+def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""
     attachments = {}
-    if '_attachments' in kobo_data.keys():
-        if kobo_data['_attachments'] is not None:
-            for attachment in kobo_data['_attachments']:
-                filename = attachment['filename'].split('/')[-1]
-                downloadurl = attachment['download_url']
-                mimetype = attachment['mimetype']
-                attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    if kobotoken and koboasset and '_id' in kobo_data.keys():
+        headers = {'Authorization': f'Token {kobotoken}'}
+        URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
+        data_request = requests.get(URL, headers=headers)
+        data = data_request.json()
+        if '_attachments' in data.keys():
+            attachments = data['_attachments']
+    if len(attachments) == 0:
+        if '_attachments' in kobo_data.keys():
+            attachments = kobo_data['_attachments']
+    for attachment in attachments:
+        filename = attachment['filename'].split('/')[-1]
+        downloadurl = attachment['download_url']
+        mimetype = attachment['mimetype']
+        attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
     return attachments
 
 
@@ -165,8 +173,13 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         )
     
     kobo_data = clean_kobo_data(kobo_data)
+    kobotoken, koboasset = None, None
+    if 'kobotoken' in request.headers.keys():
+        kobotoken = request.headers['kobotoken']
+    if 'koboasset' in request.headers.keys():
+        koboasset = request.headers['koboasset']
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
-    attachments = get_attachment_dict(kobo_data)
+    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
 
     # check if records need to be updated
     update_record_payload = {}
@@ -231,13 +244,13 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             payload[target_entity][target_field] = kobo_value
         else:
             file_url = attachments[kobo_value_url]['url']
-            if 'kobotoken' not in request.headers.keys():
+            if not kobotoken:
                 update_submission_status(submission, 'failed',
                                          f"'kobotoken' needs to be specified in headers"
                                          f" to upload attachments to EspoCRM")
                 
             # encode attachment in base64
-            file = get_kobo_attachment(file_url, request.headers['kobotoken'])
+            file = get_kobo_attachment(file_url, kobotoken)
             file_b64 = base64.b64encode(file).decode("utf8")
             # upload attachment to target
             attachment_payload = {
@@ -314,7 +327,12 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     # Check if 'skipConnect' is present and set to True in kobo_data
     if 'skipconnect' in kobo_data and kobo_data['skipconnect'] == '1':
         return JSONResponse(status_code=200, content={"message": "Skipping connection to 121"})
-    attachments = get_attachment_dict(kobo_data)
+    kobotoken, koboasset = None, None
+    if 'kobotoken' in request.headers.keys():
+        kobotoken = request.headers['kobotoken']
+    if 'koboasset' in request.headers.keys():
+        koboasset = request.headers['koboasset']
+    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
 
     if 'programid' in request.headers.keys():
         programid = request.headers['programid']
