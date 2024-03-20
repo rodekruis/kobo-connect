@@ -114,16 +114,16 @@ def get_kobo_attachment(URL, kobo_token):
 def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""
     attachments = {}
-    if kobotoken and koboasset and '_id' in kobo_data.keys():
-        headers = {'Authorization': f'Token {kobotoken}'}
-        URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
-        data_request = requests.get(URL, headers=headers)
-        data = data_request.json()
-        if '_attachments' in data.keys():
-            attachments = data['_attachments']
-    if len(attachments) == 0:
-        if '_attachments' in kobo_data.keys():
-            attachments = kobo_data['_attachments']
+    # if kobotoken and koboasset and '_id' in kobo_data.keys():
+    #     headers = {'Authorization': f'Token {kobotoken}'}
+    #     URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
+    #     data_request = requests.get(URL, headers=headers)
+    #     data = data_request.json()
+    #     if '_attachments' in data.keys():
+    #         attachments = data['_attachments']
+    # if len(attachments) == 0:
+    if '_attachments' in kobo_data.keys():
+        attachments = kobo_data['_attachments']
     for attachment in attachments:
         filename = attachment['filename'].split('/')[-1]
         downloadurl = attachment['download_url']
