@@ -353,19 +353,20 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         referenceId = kobo_data['_uuid']
 
     # Create API payload body
-    intvalues = ['maxPayments', 'paymentAmountMultiplier','inclusionScore']
+    intvalues = ['maxPayments', 'paymentAmountMultiplier', 'inclusionScore']
     payload = {}
     for kobo_field, target_field in request.headers.items():
         if kobo_field in kobo_data.keys():
-            kobo_value = kobo_data[kobo_field].replace(" ", "_")
+            kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
+            kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
             if target_field in intvalues:
                 payload[target_field] = int(kobo_data[kobo_field])
             elif target_field == 'scope':
                 payload[target_field] = clean_text(kobo_data[kobo_field])
-            elif kobo_value not in attachments.keys():
+            elif kobo_value_url not in attachments.keys():
                 payload[target_field] = kobo_data[kobo_field]
             else:
-                payload[target_field] = attachments[kobo_value]['url']
+                payload[target_field] = attachments[kobo_value_url]['url']
         else:
             payload[target_field] = ""
 
