@@ -4,7 +4,7 @@ from fastapi import Security, Depends, FastAPI, APIRouter, Request, HTTPExceptio
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
-from enum import Enum
+import re
 from time import sleep
 from clients.espo_api_client import EspoAPI
 import requests
@@ -242,6 +242,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             
         # process individual field; if it's an attachment, upload it to EspoCRM
         kobo_value_url = str(kobo_value).replace(" ", "_")
+        kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
         if kobo_value_url not in attachments.keys():
             payload[target_entity][target_field] = kobo_value
         else:
