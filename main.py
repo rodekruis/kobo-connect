@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
 from enum import Enum
+from time import sleep
 from clients.espo_api_client import EspoAPI
 import requests
 import csv
@@ -115,6 +116,7 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""
     attachments, attachments_list = {}, []
     if kobotoken and koboasset and '_id' in kobo_data.keys():
+        sleep(5)
         logging.info("trying new attachment strategy")
         headers = {'Authorization': f'Token {kobotoken}'}
         URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
