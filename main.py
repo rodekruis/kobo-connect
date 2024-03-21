@@ -499,7 +499,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
     CHECKFIELDS = ['validation', 'phase', 'location', 'ngo', 'language', 'titlePortal', 'description',
                 'startDate', 'endDate', 'currency', 'distributionFrequency', 'distributionDuration', 'fixedTransferValue',
                 'financialServiceProviders', 'targetNrRegistrations', 'tryWhatsAppFirst', 'phoneNumberPlaceholder', 'aboutProgram',
-                'fullnameNamingConvention', 'enableMaxPayments', 'phoneNumber','preferredLanguage','maxPayments','fspName']
+                'fullnameNamingConvention', 'enableMaxPayments', 'phoneNumber','preferredLanguage','budget','maxPayments','fspName']
 
     # First check if all setup fields are in the xlsform
     FIELDNAMES = survey["name"].to_list()
