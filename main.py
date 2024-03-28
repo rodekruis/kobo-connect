@@ -392,11 +392,12 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         json=[payload]
     )
     target_response = response.content.decode("utf-8")
-
-    if "debug" in request.headers.items():
-        logger.info(payload)
     
     logger.info(target_response)
+
+    if response.status_code != 201:
+        logger.error("wrong request: ", response.status_code, target_response)
+        logger.info(payload)
 
     return JSONResponse(status_code=response.status_code, content=target_response)
 
@@ -567,6 +568,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
         ],
         "enableMaxPayments": lookupdict['enableMaxPayments'].upper() == 'TRUE',
         "allowEmptyPhoneNumber": False,
+        "budget": lookupdict['budget']
         "enableScope": False
     }
 
