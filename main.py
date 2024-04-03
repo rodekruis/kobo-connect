@@ -110,12 +110,8 @@ def get_kobo_attachment(URL, kobo_token):
     while True:
         data_request = requests.get(URL, headers=headers)
         data = data_request.content
-        if time.time() > timeout:
-            logging.info(f"Attachment timeout")
+        if sys.getsizeof(data) > 1000 or time.time() > timeout:
             break
-        if sys.getsizeof(data) > 1000:
-            break
-        logging.info(f"Attachment size: {sys.getsizeof(data)}, waiting 10 seconds")
         time.sleep(10)
     return data
 
@@ -134,14 +130,12 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     if len(attachments_list) == 0:
         if '_attachments' in kobo_data.keys():
             attachments_list = kobo_data['_attachments']
-        logging.info(f"Attachment list 0: {attachments_list}")
         for attachment in attachments_list:
             filename = attachment['filename'].split('/')[-1]
             downloadurl = attachment['download_large_url']
             mimetype = attachment['mimetype']
             attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
     else:
-        logging.info(f"Attachment list 1: {attachments_list}")
         for attachment in attachments_list:
             filename = attachment['filename'].split('/')[-1]
             downloadurl = "https://kc.ifrc.org/media/original?media_file="+attachment['filename']
@@ -198,7 +192,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         koboasset = request.headers['koboasset']
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
     attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
-    logging.info(f"Attachment dictionary: {attachments}")
     
     # check if records need to be updated
     update_record_payload = {}
@@ -281,7 +274,6 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 "field": target_field,
                 "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
             }
-            logging.info(f"Attachment: {attachment_payload}")
             attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
             # link field to attachment
             payload[target_entity][f"{target_field}Id"] = attachment_record['id']
