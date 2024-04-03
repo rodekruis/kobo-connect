@@ -1,11 +1,10 @@
 import uvicorn
-from typing import Union
+import time
 from fastapi import Security, Depends, FastAPI, APIRouter, Request, HTTPException, Header
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
 import re
-from time import sleep
 from clients.espo_api_client import EspoAPI
 import requests
 import csv
@@ -107,8 +106,13 @@ def update_submission_status(submission, status, error_message=None):
 def get_kobo_attachment(URL, kobo_token):
     """Get attachment from kobo"""
     headers = {'Authorization': f'Token {kobo_token}'}
-    data_request = requests.get(URL, headers=headers)
-    data = data_request.content
+    timeout = time.time() + 60  # 1 minute from now
+    while True:
+        data_request = requests.get(URL, headers=headers)
+        data = data_request.content
+        if sys.getsizeof(data) > 1000 or time.time() > timeout:
+            break
+        time.sleep(10)
     return data
 
 
@@ -116,7 +120,7 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""
     attachments, attachments_list = {}, []
     if kobotoken and koboasset and '_id' in kobo_data.keys():
-        sleep(5)
+        time.sleep(10)
         headers = {'Authorization': f'Token {kobotoken}'}
         URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
         data_request = requests.get(URL, headers=headers)
