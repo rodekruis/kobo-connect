@@ -131,16 +131,22 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
         data = data_request.json()
         if '_attachments' in data.keys():
             attachments_list = data['_attachments']
-    logging.info(f"Attachment list 0: {attachments_list}")
     if len(attachments_list) == 0:
         if '_attachments' in kobo_data.keys():
             attachments_list = kobo_data['_attachments']
-    logging.info(f"Attachment list 1: {attachments_list}")
-    for attachment in attachments_list:
-        filename = attachment['filename'].split('/')[-1]
-        downloadurl = attachment['download_large_url']
-        mimetype = attachment['mimetype']
-        attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+        logging.info(f"Attachment list 0: {attachments_list}")
+        for attachment in attachments_list:
+            filename = attachment['filename'].split('/')[-1]
+            downloadurl = attachment['download_large_url']
+            mimetype = attachment['mimetype']
+            attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
+    else:
+        logging.info(f"Attachment list 1: {attachments_list}")
+        for attachment in attachments_list:
+            filename = attachment['filename'].split('/')[-1]
+            downloadurl = "https://kc.ifrc.org/media/original?media_file="+attachment['filename']
+            mimetype = attachment['mimetype']
+            attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
     return attachments
 
 
