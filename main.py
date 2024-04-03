@@ -110,8 +110,12 @@ def get_kobo_attachment(URL, kobo_token):
     while True:
         data_request = requests.get(URL, headers=headers)
         data = data_request.content
-        if sys.getsizeof(data) > 1000 or time.time() > timeout:
+        if time.time() > timeout:
+            logging.info(f"Attachment timeout")
             break
+        if sys.getsizeof(data) > 1000:
+            break
+        logging.info(f"Attachment size: {sys.getsizeof(data)}, waiting 10 seconds")
         time.sleep(10)
     return data
 
@@ -132,7 +136,7 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
             attachments_list = kobo_data['_attachments']
     for attachment in attachments_list:
         filename = attachment['filename'].split('/')[-1]
-        downloadurl = attachment['download_url']
+        downloadurl = attachment['download_large_url']
         mimetype = attachment['mimetype']
         attachments[filename] = {'url': downloadurl, 'mimetype': mimetype}
     return attachments
@@ -186,7 +190,8 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         koboasset = request.headers['koboasset']
     client = EspoAPI(request.headers['targeturl'], request.headers['targetkey'])
     attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
-
+    logging.info(f"Attachment dictionary: {attachments}")
+    
     # check if records need to be updated
     update_record_payload = {}
     if 'updaterecordby' in request.headers.keys():
