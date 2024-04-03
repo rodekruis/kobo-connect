@@ -213,7 +213,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             repeat_question = split[3]
             repeat = True
             
-        # check if kobo_field is in submission
+        # check if kobo_field is in kobo_data
         if kobo_field not in kobo_data.keys():
             continue
             
@@ -242,7 +242,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
             
         # process individual field; if it's an attachment, upload it to EspoCRM
         kobo_value_url = str(kobo_value).replace(" ", "_")
-        kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
+        kobo_value_url = re.sub(r"[(,)']", "", kobo_value_url)
         if kobo_value_url not in attachments.keys():
             payload[target_entity][target_field] = kobo_value
         else:
@@ -264,6 +264,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                 "field": target_field,
                 "file": f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
             }
+            logging.info(f"Attachment: {attachment_payload}")
             attachment_record = espo_request(submission, client, 'POST', 'Attachment', attachment_payload)
             # link field to attachment
             payload[target_entity][f"{target_field}Id"] = attachment_record['id']
