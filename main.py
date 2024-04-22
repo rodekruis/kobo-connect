@@ -400,8 +400,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         json=[payload]
     )
     target_response = response.content.decode("utf-8")
-
-    if "debug" in request.headers.items():
+    if 'debug' in request.headers.keys():
         logger.info(payload)
     
     logger.info(target_response)
