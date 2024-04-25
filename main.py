@@ -518,14 +518,18 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
 
     lookupdict = dict(zip(survey['name'], survey['default']))
 
-    if 'tags'in survey.columns:
+    if 'tags' in survey.columns:
         dedupedict = dict(zip(survey['name'], survey['tags']))
+        fspquestions = []
 
         for key, value in dedupedict.items():
-            if isinstance(value, list) and any('dedupe' in item for item in value):
+            if isinstance(value, list) and any('fsp' in item for item in value):
+                fspquestions.append(key)
+            elif isinstance(value, list) and any('dedupe' in item for item in value):
                 dedupedict[key] = True
             else:
                 dedupedict[key] = False
+    
     else:
         survey['tags'] = False
         dedupedict = dict(zip(survey['name'], survey['tags']))
@@ -580,7 +584,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
     koboConnectHeader = ['fspName', 'preferredLanguage', 'maxPayments']
 
     for index, row in survey.iterrows():
-        if row['type'].split()[0] in mappingdf['kobotype'].tolist() and row['name'] not in CHECKFIELDS:
+        if row['type'].split()[0] in mappingdf['kobotype'].tolist() and row['name'] not in CHECKFIELDS and row['name'] not in fspquestions:
             koboConnectHeader.append(row['name'])
             question = {
                 "name": row['name'],
@@ -655,6 +659,7 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
             }
         }
     }
+    koboConnectHeader = koboConnectHeader + fspquestions 
     customHeaders = dict(zip(koboConnectHeader, koboConnectHeader))
     restServicePayload['settings']['custom_headers'] = customHeaders
 
