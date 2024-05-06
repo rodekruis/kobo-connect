@@ -517,10 +517,10 @@ async def create_121_program_from_kobo(request: Request, dependencies=Depends(re
         print('Missing hidden fields in the template: ', MISSINGFIELDS)
 
     lookupdict = dict(zip(survey['name'], survey['default']))
+    fspquestions = []
 
     if 'tags' in survey.columns:
         dedupedict = dict(zip(survey['name'], survey['tags']))
-        fspquestions = []
 
         for key, value in dedupedict.items():
             if isinstance(value, list) and any('fsp' in item for item in value):
