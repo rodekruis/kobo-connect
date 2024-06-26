@@ -120,7 +120,7 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""
     attachments, attachments_list = {}, []
     if kobotoken and koboasset and '_id' in kobo_data.keys():
-        time.sleep(10)
+        time.sleep(30)
         headers = {'Authorization': f'Token {kobotoken}'}
         URL = f"https://kobo.ifrc.org/api/v2/assets/{koboasset}/data/{kobo_data['_id']}/?format=json"
         data_request = requests.get(URL, headers=headers)
