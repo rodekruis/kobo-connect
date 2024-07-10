@@ -284,7 +284,7 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
                                  f" no entities found in headers")
         
     for target_entity in payload.keys():
-        logger.info(payload)
+
         if target_entity not in update_record_payload.keys():
             # create new record of target entity
             response = espo_request(submission, client, 'POST', target_entity, payload[target_entity])
@@ -400,8 +400,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         json=[payload]
     )
     target_response = response.content.decode("utf-8")
-    if 'debug' in request.headers.keys():
-        logger.info(payload)
     
     logger.info(target_response)
 
