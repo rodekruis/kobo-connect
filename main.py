@@ -185,6 +185,11 @@ async def kobo_to_espocrm(request: Request, dependencies=Depends(required_header
         )
     
     kobo_data = clean_kobo_data(kobo_data)
+
+    # Check if 'skipConnect' is present and set to True in kobo_data
+    if 'skipconnect' in kobo_data and kobo_data['skipconnect'] == '1':
+        return JSONResponse(status_code=200, content={"message": "Skipping connection to EspoCRM"})
+    
     kobotoken, koboasset = None, None
     if 'kobotoken' in request.headers.keys():
         kobotoken = request.headers['kobotoken']

@@ -54,7 +54,7 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
 - If you need to **update** a pre-existing record:
   - add a question of type `calculate` called `updaterecordby` in the kobo form, which will contain the value of the field which you will use to identify the record;
   - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
-
+- If you would like to define which submissions should and should not be send to EspoCRM, you can use the field `skipconnect` in your Kobo form. If the field is set to `1`, the submission will not be send to EspoCRM.
 
 ## 121
 
@@ -83,7 +83,9 @@ See below for an example configuration, in which programId was not included as a
 
 
 #### Nota Bene
-The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
+- The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
+- If you would like to define which submissions should and should not be send to EspoCRM, you can use the field `skipconnect` in your Kobo form. If the field is set to `1`, the submission will not be send to EspoCRM.
+
 
 ## Create headers endpoint
 If you need to map a lot of questions, creating the headers manually is cumbersome. The `/create-kobo-headers` endpoint automates this. It expects 4 query parameters:
