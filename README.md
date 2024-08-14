@@ -84,7 +84,7 @@ See below for an example configuration, in which programId was not included as a
 
 #### Nota Bene
 - The 121 API is currently throttled at 3000 submissions per minute. If you expect to go over this limit, please reach out the the 121 platform team.
-- If you would like to define which submissions should and should not be send to EspoCRM, you can use the field `skipconnect` in your Kobo form. If the field is set to `1`, the submission will not be send to EspoCRM.
+- If you would like to define which submissions should and should not be send to EspoCRM, you can use the field `skipconnect` in your Kobo form. If the field is set to `1`, the submission will not be send to 121.
 
 
 ## Create headers endpoint
