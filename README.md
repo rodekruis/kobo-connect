@@ -52,9 +52,11 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
     - `repeat.repeatedgroup.1.repeatedquestion`: `Entity.field2`
   - Not all repeated questions need to be filled in nor saved to EspoCRM.
 - If you need to **update** a pre-existing record:
-  - add a question of type `calculate` called `updaterecordby` in the kobo form, which will contain the value of the field which you will use to identify the record;
+  - add a question of type `calculate` called `updaterecordby` in the Kobo form, which will contain the value of the field which you will use to identify the record;
   - add a `Custom HTTP Header` called `updaterecordby` with the name of the field that you will use to identify the record.
-- If you would like to define which submissions should and should not be send to EspoCRM, you can use the field `skipconnect` in your Kobo form. If the field is set to `1`, the submission will not be send to EspoCRM.
+- If you need to **avoid sending specific submissions** to EspoCRM:
+  - add a question called `skipconnect` in the Kobo form;
+  - whenever its value is `1` (based on some condition), the submission will not be sent to EspoCRM.
 
 ## 121
 
@@ -73,7 +75,7 @@ _Special Headers_:
 
 - The headers `url121` is required and corresponds the url of the 121 instance (without trailing `/`, so e.g. https://staging.121.global)
 - Headers `username121` and `password121`, corresponding to the 121 username and the 121 password respectively, must be included as well.
-- If `programid` is included as a (select one) question, the `XML Value` of the question in kobo needs to be the corresponding number in the 121 portal, the label can be something else, see below
+- If `programid` is included as a (select one) question, the `XML Value` of the question in Kobo needs to be the corresponding number in the 121 portal, the label can be something else, see below
   ![programId](https://github.com/rodekruis/kobo-connect/assets/39266480/1b0ccf53-2740-4432-b31e-d5cb57d2aac5)
 - If `programid` is not included as a question, it needs to be added to the header as a number
 
@@ -90,8 +92,8 @@ See below for an example configuration, in which programId was not included as a
 ## Create headers endpoint
 If you need to map a lot of questions, creating the headers manually is cumbersome. The `/create-kobo-headers` endpoint automates this. It expects 4 query parameters:
 - `system`: required, enum (options: 121, espocrm, generic)
-- `kobouser`: your kobo username
-- `kobopassword`: your kobo password
+- `kobouser`: your Kobo username
+- `kobopassword`: your Kobo password
 - `koboassetId `: the assed id of the survey (to be found in the url: https://kobonew.ifrc.org/#/forms/`ASSETID`/summary)
 
 In the body you can pass all the headers you want to create as key value pairs, for example:
@@ -103,7 +105,7 @@ In the body you can pass all the headers you want to create as key value pairs, 
  }
 ```
 
-This endpoint assumes the IFRC kobo server (`https://kobonew.ifrc.org`)
+This endpoint assumes the IFRC Kobo server (`https://kobonew.ifrc.org`)
 
 ## Generic endpoint
 
