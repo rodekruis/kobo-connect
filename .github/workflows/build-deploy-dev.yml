@@ -50,5 +50,5 @@ jobs:
       with:
         app-name: 'kobo-connect'
         slot-name: 'dev'
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV }}
         images: '510emergencies.azurecr.io/kobo-connect-dev:${{ github.sha }}'
