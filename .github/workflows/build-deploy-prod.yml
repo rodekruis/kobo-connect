@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: build and deploy to Azure Web App
+name: build and deploy to prod
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     runs-on: 'ubuntu-latest'
     defaults:
       run:
-        working-directory: ./summarizer-api
+        working-directory: ./app
 
     steps:
     - uses: actions/checkout@v2

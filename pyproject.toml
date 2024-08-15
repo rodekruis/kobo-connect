@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "kobo-connect"
+version = "0.0.2"
+authors = [
+  "Jacopo Margutti <jmargutti@redcross.nl>"
+]
+description = "kobo-connect"
+readme = "README.md"
+repository = "https://github.com/rodekruis/kobo-connect"
+packages = [{include = "clients"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "*"
+aiosignal = "*"
+async-timeout = "*"
+azure-monitor-opentelemetry-exporter = "*"
+azure-core = "*"
+azure-storage-blob = "*"
+azure-cosmos = "*"
+attrs = "*"
+certifi = "*"
+charset-normalizer = "*"
+click = "*"
+colorama = "*"
+fastapi = "*"
+frozenlist = "*"
+idna = "*"
+lxml = "*"
+multidict = "*"
+pandas = "*"
+passlib = "*"
+pypdf = "*"
+python-docx = "*"
+python-dotenv = "*"
+python-jose = "*"
+regex = "*"
+requests = "*"
+tiktoken = "*"
+tqdm = "*"
+urllib3 = "*"
+yarl = "*"
+uvicorn = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

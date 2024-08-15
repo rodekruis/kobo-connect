@@ -1,17 +1,20 @@
 # python base image in the container from Docker Hub
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # copy files to the /app folder in the container
 ADD clients /app/clients
 ADD mappings /app/mappings
 COPY ./main.py /app/main.py
-COPY ./requirements.txt /app/requirements.txt
+COPY ./pyproject.toml /app/pyproject.toml
+COPY ./poetry.lock /app/poetry.lock
 
 # set the working directory in the container to be /app
 WORKDIR /app
 
 # install required packages
-RUN pip install -r requirements.txt
+RUN pip install poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install --no-root
 
 # expose the port that uvicorn will run the app on
 ENV PORT=8000
