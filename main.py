@@ -493,10 +493,8 @@ class system(str, Enum):
 
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(
-    json_data: dict,
+    request: Request,
     system: system,
-    kobouser: str,
-    kobopassword: str,
     koboassetId: str,
     hookId: str = None,
 ):
@@ -505,6 +503,7 @@ async def create_kobo_headers(
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***
     """
 
+    json_data = await request.json()
     if json_data is None:
         raise HTTPException(status_code=400, detail="JSON data is required")
 
@@ -527,7 +526,7 @@ async def create_kobo_headers(
         payload["settings"]["custom_headers"] = json_data
     else:
         get_url = f"https://kobo.ifrc.org/api/v2/assets/{koboassetId}/hooks/{hookId}"
-        hook = requests.get(get_url, auth=auth)
+        hook = requests.get(get_url, headers=koboheaders)
         hook = hook.json()
         hook["name"] = "Duplicate of " + hook["name"]
 
