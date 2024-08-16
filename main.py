@@ -509,7 +509,7 @@ async def create_kobo_headers(
         raise HTTPException(status_code=400, detail="JSON data is required")
 
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
-    auth = (kobouser, kobopassword)
+    koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
 
     if hookId is None:
         payload = {
@@ -549,7 +549,7 @@ async def create_kobo_headers(
         ]
         payload = remove_keys(hook, keys_to_remove)
 
-    response = requests.post(target_url, auth=auth, json=payload)
+    response = requests.post(target_url, headers=koboheaders, json=payload)
 
     if response.status_code == 200 or 201:
         return JSONResponse(content={"message": "Sucess"})
