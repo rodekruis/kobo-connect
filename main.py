@@ -46,6 +46,12 @@ logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.NOTSET)
 logger = logging.getLogger(__name__)
 
+# Silence noisy loggers
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
+
 # load environment variables
 load_dotenv()
 port = os.environ["PORT"]
