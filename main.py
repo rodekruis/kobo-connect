@@ -414,10 +414,23 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
+    extra_logs = {"environment": os.getenv("ENV")}
+    try:
+        extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
+        extra_logs["kobo_form_version"] = str(kobo_data["__version__"])
+        extra_logs["kobo_submission_id"] = str(kobo_data["_id"])
+    except KeyError:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Not a valid Kobo submission"},
+        )
+    extra_logs["121_url"] = request.headers["url121"]
+
     kobo_data = clean_kobo_data(kobo_data)
 
     # Check if 'skipConnect' is present and set to True in kobo_data
-    if "skipconnect" in kobo_data and kobo_data["skipconnect"] == "1":
+    if "skipconnect" in kobo_data.keys() and kobo_data["skipconnect"] == "1":
+        logger.info("Skipping connection to 121", extra=extra_logs)
         return JSONResponse(
             status_code=200, content={"message": "Skipping connection to 121"}
         )
@@ -433,10 +446,12 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     elif "programid" in kobo_data.keys():
         programid = kobo_data["programid"]
     else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"'programid' needs to be specified in headers or submission body",
+        error_message = (
+            "'programid' needs to be specified in headers or submission body"
         )
+        logger.info(f"Failed: {error_message}", extra=extra_logs)
+        raise HTTPException(status_code=400, detail=error_message)
+    extra_logs["121_program_id"] = request.headers["programid"]
 
     if "referenceId" in request.headers.keys():
         referenceId = request.headers["referenceId"]
@@ -469,24 +484,47 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         "password": request.headers["password121"],
     }
     url = f"{request.headers['url121']}/api/users/login"
-    login = requests.post(url, data=body)
-    if login.status_code >= 400:
-        raise HTTPException(
-            status_code=login.status_code, detail=login.content.decode("utf-8")
+    login_response = requests.post(url, data=body)
+    if login_response.status_code >= 400:
+        error_message = login_response.content.decode("utf-8")
+        logger.info(
+            f"Failed: 121 login returned {login_response.status_code} {error_message}",
+            extra=extra_logs,
         )
-    access_token = login.json()["access_token_general"]
+        raise HTTPException(
+            status_code=login_response.status_code, detail=error_message
+        )
+    access_token = login_response.json()["access_token_general"]
 
-    # POST to target API
-    response = requests.post(
+    # POST to 121 import endpoint
+    import_response = requests.post(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
         headers={"Cookie": f"access_token_general={access_token}"},
         json=[payload],
     )
-    target_response = response.content.decode("utf-8")
+    import_response_message = import_response.content.decode("utf-8")
+    if 200 <= import_response.status_code <= 299:
+        logger.info(
+            f"Success: 121 import returned {import_response.status_code} {import_response_message}",
+            extra=extra_logs,
+        )
+    elif import_response.status_code >= 400:
+        logger.error(
+            f"Failed: 121 import returned {import_response.status_code} {import_response_message}",
+            extra=extra_logs,
+        )
+        raise HTTPException(
+            status_code=import_response.status_code, detail=import_response_message
+        )
+    else:
+        logger.warning(
+            f"121 import returned {import_response.status_code} {import_response_message}",
+            extra=extra_logs,
+        )
 
-    logger.info(target_response)
-
-    return JSONResponse(status_code=response.status_code, content=target_response)
+    return JSONResponse(
+        status_code=import_response.status_code, content=import_response_message
+    )
 
 
 ########################################################################################################################
