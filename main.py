@@ -32,6 +32,10 @@ from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from azure.monitor.opentelemetry.exporter import AzureMonitorLogExporter
 
+# load environment variables
+load_dotenv()
+port = os.environ["PORT"]
+
 # Set up logs export to Azure Application Insights
 logger_provider = LoggerProvider()
 set_logger_provider(logger_provider)
@@ -51,10 +55,8 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
-
-# load environment variables
-load_dotenv()
-port = os.environ["PORT"]
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 
 # initialize FastAPI
 app = FastAPI(
@@ -538,7 +540,7 @@ class system(str, Enum):
 
 @app.post("/create-kobo-headers")
 async def create_kobo_headers(
-    request: Request,
+    json_data: dict,
     system: system,
     koboassetId: str,
     hookId: str = None,
@@ -548,7 +550,6 @@ async def create_kobo_headers(
     ***NB: if you want to duplicate an endpoint, please also use the Hook ID query param***
     """
 
-    json_data = await request.json()
     if json_data is None:
         raise HTTPException(status_code=400, detail="JSON data is required")
 
