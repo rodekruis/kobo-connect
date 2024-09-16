@@ -543,6 +543,7 @@ async def create_kobo_headers(
     json_data: dict,
     system: system,
     koboassetId: str,
+    kobotoken: str,
     hookId: str = None,
 ):
     """Utility endpoint to automatically create the necessary headers in Kobo. \n
