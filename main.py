@@ -555,7 +555,7 @@ async def create_kobo_headers(
         raise HTTPException(status_code=400, detail="JSON data is required")
 
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{koboassetId}/hooks/"
-    koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
+    koboheaders = {"Authorization": f"Token {kobotoken}"}
 
     if hookId is None:
         payload = {
