@@ -8,7 +8,7 @@ def http_build_query(data):
     pairs = dict()
 
     def renderKey(parents):
-        depth, outStr = 0, ''
+        depth, outStr = 0, ""
         for x in parents:
             s = "[%s]" if depth > 0 or isinstance(x, int) else "%s"
             outStr += s % str(x)
@@ -30,15 +30,16 @@ def http_build_query(data):
             pairs[renderKey(parents)] = str(data)
 
         return pairs
+
     return urllib.parse.urlencode(r_urlencode(data))
 
 
 class EspoAPI:
 
-    url_path = '/api/v1/'
+    url_path = "/api/v1/"
 
     def __init__(self, url, api_key):
-        if url.endswith('/'):
+        if url.endswith("/"):
             url = url[:-1]
         self.url = url
         self.api_key = api_key
@@ -48,17 +49,17 @@ class EspoAPI:
         if params is None:
             params = {}
 
-        headers = {'X-Api-Key': self.api_key}
+        headers = {"X-Api-Key": self.api_key}
 
         kwargs = {
-            'url': self.normalize_url(action),
-            'headers': headers,
+            "url": self.normalize_url(action),
+            "headers": headers,
         }
 
-        if method in ['POST', 'PATCH', 'PUT']:
-            kwargs['json'] = params
+        if method in ["POST", "PATCH", "PUT"]:
+            kwargs["json"] = params
         else:
-            kwargs['url'] = kwargs['url'] + '?' + http_build_query(params)
+            kwargs["url"] = kwargs["url"] + "?" + http_build_query(params)
 
         response = requests.request(method, **kwargs)
 
@@ -66,17 +67,11 @@ class EspoAPI:
 
         if self.status_code != 200:
             reason = self.parse_reason(response.headers)
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Wrong request, reason is {reason}"
-            )
+            raise HTTPException(status_code=response.status_code, detail=f"{reason}")
 
         data = response.content
         if not data:
-            raise HTTPException(
-                status_code=204,
-                detail=f"Wrong request, content response is empty"
-            )
+            raise HTTPException(status_code=204, detail=f"Content response is empty")
 
         return response.json()
 
@@ -85,7 +80,7 @@ class EspoAPI:
 
     @staticmethod
     def parse_reason(headers):
-        if 'X-Status-Reason' not in headers:
-            return 'Unknown Error'
+        if "X-Status-Reason" not in headers:
+            return "Unknown Error"
 
-        return headers['X-Status-Reason']
+        return headers["X-Status-Reason"]
