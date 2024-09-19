@@ -859,5 +859,15 @@ async def kobo_to_generic(request: Request):
     return JSONResponse(status_code=200, content=target_response)
 
 
+@app.get("/health")
+async def health():
+    """Get health of instance."""
+    kobo = requests.get(f"https://kobo.ifrc.org/api/v2")
+    return JSONResponse(
+        status_code=200,
+        content={"kobo-connect": 200, "kobo.ifrc.org": kobo.status_code},
+    )
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(port), reload=True)
