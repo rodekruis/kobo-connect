@@ -706,6 +706,20 @@ async def prepare_kobo_validation(request: Request, programId: int, kobousername
     if upload_response.status_code != 201:
         raise HTTPException(status_code=upload_response.status_code, detail="Failed to upload file to Kobo")
 
+    # Redeploy the Kobo form
+    redeploy_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/deployment/"
+    redeploy_payload = {"active": True}
+    
+    redeploy_response = requests.patch(
+        redeploy_url,
+        headers=headers,
+        json=redeploy_payload
+    )
+
+    if redeploy_response.status_code != 200:
+        raise HTTPException(status_code=redeploy_response.status_code, detail="Failed to redeploy Kobo form")
+
+
     return {"message": "Validation data prepared and uploaded successfully", "kobo_response": upload_response.json()}
 
 
