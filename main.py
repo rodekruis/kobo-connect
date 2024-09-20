@@ -650,15 +650,20 @@ async def prepare_kobo_validation(request: Request, programId: int, kobousername
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
+    # Ensure we have data to process
     if data and 'data' in data and len(data['data']) > 0:
-        writer.writerow(data['data'][0].keys())
-    
-    # Write rows
-    if data and 'data' in data:
+        # Get the keys (column names) from the first row
+        fieldnames = list(data['data'][0].keys())
+
+        # Write header
+        writer.writerow(fieldnames)
+
+        # Write rows
         for row in data['data']:
-            writer.writerow(row.values())
-    
+            # Create a list of values in the same order as fieldnames
+            row_data = [row.get(field, '') for field in fieldnames]
+            writer.writerow(row_data)
+
     csv_content = output.getvalue().encode('utf-8')
 
     # Prepare the payload for Kobo
