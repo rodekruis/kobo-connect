@@ -534,7 +534,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
 @app.post("/kobo-update-121")
 async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121)):
-    """Update a 121 recored from a Kobo submission"""
+    """Update a 121 record from a Kobo submission"""
 
     kobo_data = await request.json()
     kobo_data = clean_kobo_data(kobo_data)
@@ -591,7 +591,6 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
 
             # POST to target API
             if target_field != 'referenceId':
-                print(f"{request.headers['url121']}/api/programs/{programid}/registrations/{referenceId}")
                 response = requests.patch(
                     f"{request.headers['url121']}/api/programs/{programid}/registrations/{referenceId}",
                     headers={'Cookie': f"access_token_general={access_token}"},
@@ -600,7 +599,15 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
 
                 target_response = response.content.decode("utf-8")
                 logger.info(target_response)
-                
+        
+    status_response = requests.patch(
+                    f"{request.headers['url121']}/api/programs/{programid}/registrations/status?dryRun=false&filter.referenceId=$in:{referenceId}",
+                    headers={'Cookie': f"access_token_general={access_token}"},
+                    json={"status": "validated"}
+                )
+    
+    if status_response.status_code != 202:
+        raise HTTPException(status_code=response.status_code, detail="Failed to set status of PA to validated")
                 
 
     return JSONResponse(status_code=response.status_code, content=target_response)
