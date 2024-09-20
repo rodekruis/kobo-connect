@@ -528,6 +528,80 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         status_code=import_response.status_code, content=import_response_message
     )
 
+########################################################################################################################
+
+@app.post("/kobo-update-121")
+async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121)):
+    """Update a 121 recored from a Kobo submission"""
+
+    kobo_data = await request.json()
+    kobo_data = clean_kobo_data(kobo_data)
+
+    kobotoken, koboasset = None, None
+    if 'kobotoken' in request.headers.keys():
+        kobotoken = request.headers['kobotoken']
+    if 'koboasset' in request.headers.keys():
+        koboasset = request.headers['koboasset']
+    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
+
+    if 'programid' in request.headers.keys():
+        programid = request.headers['programid']
+    elif 'programid' in kobo_data.keys():
+        programid = kobo_data['programid']
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'programid' needs to be specified in headers or submission body"
+        )
+
+    referenceId = kobo_data['referenceid']
+    print(referenceId)
+    # get access token from cookie
+    body = {'username': request.headers['username121'], 'password': request.headers['password121']}
+    url = f"{request.headers['url121']}/api/users/login"
+    login = requests.post(url, data=body)
+    if login.status_code >= 400:
+        raise HTTPException(
+            status_code=login.status_code,
+            detail=login.content.decode("utf-8")
+        )
+    access_token = login.json()['access_token_general']
+
+    # Create API payload body
+    intvalues = ['maxPayments', 'paymentAmountMultiplier', 'inclusionScore']
+
+    for kobo_field, target_field in request.headers.items():
+        payload = {
+            "data": {},
+            "reason": "Validated during field validation"
+        }
+        if kobo_field in kobo_data.keys():
+            kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
+            kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
+            if target_field in intvalues:
+                payload["data"][target_field] = int(kobo_data[kobo_field])
+            elif target_field == 'scope':
+                payload["data"][target_field] = clean_text(kobo_data[kobo_field])
+            elif kobo_value_url not in attachments.keys():
+                payload["data"][target_field] = kobo_data[kobo_field]
+            else:
+                payload["data"][target_field] = attachments[kobo_value_url]['url']
+
+            # POST to target API
+            if target_field != 'referenceId':
+                print(f"{request.headers['url121']}/api/programs/{programid}/registrations/{referenceId}")
+                response = requests.patch(
+                    f"{request.headers['url121']}/api/programs/{programid}/registrations/{referenceId}",
+                    headers={'Cookie': f"access_token_general={access_token}"},
+                    json=payload
+                )
+
+                target_response = response.content.decode("utf-8")
+                logger.info(target_response)
+                
+                
+
+    return JSONResponse(status_code=response.status_code, content=target_response)
 
 ########################################################################################################################
 
