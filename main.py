@@ -25,6 +25,8 @@ from enum import Enum
 import base64
 import sys
 import unicodedata
+import io
+import json
 from dotenv import load_dotenv
 import logging
 from opentelemetry._logs import set_logger_provider
@@ -602,6 +604,110 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
                 
 
     return JSONResponse(status_code=response.status_code, content=target_response)
+
+########################################################################################################################
+
+def required_headers_121_kobo(
+    url121: str = Header(), username121: str = Header(), password121: str = Header(), kobotoken: str = Header(), koboasset: str = Header()
+):
+    return url121, username121, password121, kobotoken, koboasset
+
+@app.post("/update-kobo-csv")
+async def prepare_kobo_validation(request: Request, programId: int, kobousername: str, dependencies=Depends(required_headers_121_kobo)):
+    """
+    Prepare Kobo validation by fetching data from 121 platform,
+    converting it to CSV, and uploading to Kobo.
+    """
+    # get access token from cookie
+    body = {'username': request.headers['username121'], 'password': request.headers['password121']}
+    url = f"{request.headers['url121']}/api/users/login"
+    login = requests.post(url, data=body)
+    if login.status_code >= 400:
+        raise HTTPException(
+            status_code=login.status_code,
+            detail=login.content.decode("utf-8")
+        )
+    access_token = login.json()['access_token_general']
+    
+    # Fetch data from 121 platform
+    response = requests.get(
+        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-people-affected", 
+        headers={'Cookie': f"access_token_general={access_token}"}
+        )
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch data from 121 platform")
+    
+    data = response.json()
+
+    # Convert JSON to CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    if data and 'data' in data and len(data['data']) > 0:
+        writer.writerow(data['data'][0].keys())
+    
+    # Write rows
+    if data and 'data' in data:
+        for row in data['data']:
+            writer.writerow(row.values())
+    
+    csv_content = output.getvalue().encode('utf-8')
+
+    # Prepare the payload for Kobo
+    base64_encoded_csv = base64.b64encode(csv_content).decode('utf-8')
+    metadata = json.dumps({"filename": "ValidationDataFrom121.csv"})
+    
+    payload = {
+        "description": "default",
+        "file_type": "form_media",
+        "metadata": metadata,
+        "base64Encoded": f"data:text/csv;base64,{base64_encoded_csv}"
+    }
+
+    # Kobo headers
+    headers = {
+        "Authorization": f"Token {request.headers['kobotoken']}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    #If exists, remove existing ValidationDataFrom121.csv
+    media_response = requests.get(
+        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
+        headers=headers
+        )
+    if media_response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch media from kobo")
+    
+    media = media_response.json()
+
+    # Check if ValidationDataFrom121.csv exists and get its uid
+    existing_file_uid = None
+    for file in media.get('results', []):
+        if file.get('metadata', {}).get('filename') == "ValidationDataFrom121.csv":
+            existing_file_uid = file.get('uid')
+            break
+
+    # If the file exists, delete it
+    if existing_file_uid:
+        delete_response = requests.delete(
+            f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/{existing_file_uid}/",
+            headers={"Authorization": f"Token {request.headers['kobotoken']}"}
+        )
+        if delete_response.status_code != 204:
+            raise HTTPException(status_code=delete_response.status_code, detail="Failed to delete existing file from Kobo")
+
+    
+    upload_response = requests.post(
+        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
+        headers=headers,
+        data=payload
+    )
+
+    if upload_response.status_code != 201:
+        raise HTTPException(status_code=upload_response.status_code, detail="Failed to upload file to Kobo")
+
+    return {"message": "Validation data prepared and uploaded successfully", "kobo_response": upload_response.json()}
+
 
 ########################################################################################################################
 
