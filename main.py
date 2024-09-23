@@ -453,7 +453,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         )
         logger.info(f"Failed: {error_message}", extra=extra_logs)
         raise HTTPException(status_code=400, detail=error_message)
-    extra_logs["121_program_id"] = request.headers["programid"]
+    extra_logs["121_program_id"] = programid
 
     if "referenceId" in request.headers.keys():
         referenceId = request.headers["referenceId"]
