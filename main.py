@@ -575,6 +575,18 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
     """Update a 121 record from a Kobo submission"""
 
     kobo_data = await request.json()
+    extra_logs = {"environment": os.getenv("ENV")}
+    try:
+        extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
+        extra_logs["kobo_form_version"] = str(kobo_data["__version__"])
+        extra_logs["kobo_submission_id"] = str(kobo_data["_id"])
+    except KeyError:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Not a valid Kobo submission"},
+        )
+    extra_logs["121_url"] = request.headers["url121"]
+
     kobo_data = clean_kobo_data(kobo_data)
 
     kobotoken, koboasset = None, None
@@ -593,6 +605,7 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
             status_code=400,
             detail=f"'programid' needs to be specified in headers or submission body"
         )
+    extra_logs["121_program_id"] = programid
 
     referenceId = kobo_data['referenceid']
   
@@ -637,9 +650,30 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
     
     if status_response.status_code != 202:
         raise HTTPException(status_code=response.status_code, detail="Failed to set status of PA to validated")
-                
+    
+    update_response_message = status_response.content.decode("utf-8")
+    if 200 <= import_response.status_code <= 299:
+        logger.info(
+            f"Success: 121 update returned {status_response.status_code} {update_response_message}",
+            extra=extra_logs,
+        )
+    elif import_response.status_code >= 400:
+        logger.error(
+            f"Failed: 121 update returned {status_response.status_code} {update_response_message}",
+            extra=extra_logs,
+        )
+        raise HTTPException(
+            status_code=status_response.status_code, detail=update_response_message
+        )
+    else:
+        logger.warning(
+            f"121 update returned {status_response.status_code} {update_response_message}",
+            extra=extra_logs,
+        )
 
-    return JSONResponse(status_code=response.status_code, content=target_response)
+    return JSONResponse(
+        status_code=status_response.status_code, content=update_response_message
+    )
 
 ########################################################################################################################
 
