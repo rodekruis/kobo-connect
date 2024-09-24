@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 import uvicorn
 import time
 from fastapi import (
@@ -107,7 +108,7 @@ def add_submission(kobo_data):
         )
         if submission["status"] == "pending":
             raise HTTPException(
-                status_code=400, detail=f"Submission is still being processed."
+                status_code=400, detail="Submission is still being processed."
             )
     return submission
 
