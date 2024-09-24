@@ -649,9 +649,6 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
                     json={"status": "validated"}
                 )
     
-    if status_response.status_code != 202:
-        raise HTTPException(status_code=response.status_code, detail="Failed to set status of PA to validated")
-    
     update_response_message = status_response.content.decode("utf-8")
     if 200 <= status_response.status_code <= 299:
         logger.info(
@@ -674,6 +671,118 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
 
     return JSONResponse(
         status_code=status_response.status_code, content=update_response_message
+    )
+
+########################################################################################################################
+
+@app.post("/121-voucher")
+async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121)):
+    """Update a 121 record from a Kobo submission"""
+
+    kobo_data = await request.json()
+    extra_logs = {"environment": os.getenv("ENV")}
+    try:
+        extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
+        extra_logs["kobo_form_version"] = str(kobo_data["__version__"])
+        extra_logs["kobo_submission_id"] = str(kobo_data["_id"])
+    except KeyError:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Not a valid Kobo submission"},
+        )
+    extra_logs["121_url"] = request.headers["url121"]
+
+    kobo_data = clean_kobo_data(kobo_data)
+
+    kobotoken, koboasset = None, None
+    if 'kobotoken' in request.headers.keys():
+        kobotoken = request.headers['kobotoken']
+    if 'koboasset' in request.headers.keys():
+        koboasset = request.headers['koboasset']
+    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
+
+    if 'programid' in request.headers.keys():
+        programid = request.headers['programid']
+    elif 'programid' in kobo_data.keys():
+        programid = kobo_data['programid']
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"'programid' needs to be specified in headers or submission body"
+        )
+    extra_logs["121_program_id"] = programid
+
+    referenceId = kobo_data['referenceid']
+  
+    access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
+    print(access_token)
+
+    # Create API payload body
+    payment_response = requests.post(
+        f"{request.headers['url121']}/api/programs/{programid}/payments?filter.referenceId=$in:{referenceId}",
+        headers={'Cookie': f"access_token_general={access_token}"},
+        json={"payment": 1, "amount": 25}
+    )
+    
+    payment_response_message = payment_response.content.decode("utf-8")
+    if 200 <= payment_response.status_code <= 299:
+        logger.info(
+            f"Success: payment done {payment_response.status_code} {payment_response_message}",
+            extra=extra_logs,
+        )
+    elif payment_response.status_code >= 400:
+        logger.error(
+            f"Failed: no payment done {payment_response.status_code} {payment_response_message}",
+            extra=extra_logs,
+        )
+        raise HTTPException(
+            status_code=payment_response.status_code, detail=payment_response_message
+        )
+    else:
+        logger.warning(
+            f"121 update returned {payment_response.status_code} {payment_response_message}",
+            extra=extra_logs,
+        )
+
+
+    payment_response_data = payment_response.json()
+    if payment_response_data.get("nonApplicableCount") == 1:
+        # Prepare CSV content
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["referenceId", "status"])
+        writer.writerow([referenceId, "success"])
+        csv_content = output.getvalue().encode('utf-8')
+
+        # Post to /api/programs/{programid}/payments/1/fsp-reconciliation
+        reconciliation_response = requests.post(
+            f"{request.headers['url121']}/api/programs/{programid}/payments/1/fsp-reconciliation",
+            headers={'Cookie': f"access_token_general={access_token}"},
+            files={"file": ("reconciliation.csv", csv_content, "text/csv")}
+        )
+
+        reconciliation_response_message = reconciliation_response.content.decode("utf-8")
+        if 200 <= reconciliation_response.status_code <= 299:
+            logger.info(
+                f"Success: reconciliation done {reconciliation_response.status_code} {reconciliation_response_message}",
+                extra=extra_logs,
+            )
+        elif reconciliation_response.status_code >= 400:
+            logger.error(
+                f"Failed: reconciliation not done {reconciliation_response.status_code} {reconciliation_response_message}",
+                extra=extra_logs,
+            )
+            raise HTTPException(
+                status_code=reconciliation_response.status_code, detail=reconciliation_response_message
+            )
+        else:
+            logger.warning(
+                f"Reconciliation returned {reconciliation_response.status_code} {reconciliation_response_message}",
+                extra=extra_logs,
+            )
+
+    return JSONResponse(
+        status_code=payment_response.status_code, content=payment_response_message
     )
 
 ########################################################################################################################
