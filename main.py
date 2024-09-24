@@ -652,12 +652,12 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
         raise HTTPException(status_code=response.status_code, detail="Failed to set status of PA to validated")
     
     update_response_message = status_response.content.decode("utf-8")
-    if 200 <= import_response.status_code <= 299:
+    if 200 <= status_response.status_code <= 299:
         logger.info(
             f"Success: 121 update returned {status_response.status_code} {update_response_message}",
             extra=extra_logs,
         )
-    elif import_response.status_code >= 400:
+    elif status_response.status_code >= 400:
         logger.error(
             f"Failed: 121 update returned {status_response.status_code} {update_response_message}",
             extra=extra_logs,
