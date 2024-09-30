@@ -1,3 +1,12 @@
+from fastapi import APIRouter, Request, Depends, HTTPException
+import requests
+from fastapi.responses import JSONResponse
+from utils.utilsKobo import clean_kobo_data, get_attachment_dict, required_headers_kobo
+from utils.utils121 import login121, required_headers_121
+import os
+
+router = APIRouter()
+
 @router.post("/kobo-to-121")
 async def kobo_to_121(request: Request, dependencies=Depends(required_headers_121)):
     """Send a Kobo submission to 121."""

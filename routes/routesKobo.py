@@ -1,19 +1,24 @@
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import JSONResponse
+import requests
+import base64
+import csv
+import io
+import json
+from enum import Enum
+from utils.utils121 import login121
+from utils.utilsKobo import required_headers_121_kobo
+
+router = APIRouter()
+
 @router.post("/update-kobo-csv")
 async def prepare_kobo_validation(request: Request, programId: int, kobousername: str, dependencies=Depends(required_headers_121_kobo)):
     """
     Prepare Kobo validation by fetching data from 121 platform,
     converting it to CSV, and uploading to Kobo.
     """
-    # get access token from cookie
-    body = {'username': request.headers['username121'], 'password': request.headers['password121']}
-    url = f"{request.headers['url121']}/api/users/login"
-    login = requests.post(url, data=body)
-    if login.status_code >= 400:
-        raise HTTPException(
-            status_code=login.status_code,
-            detail=login.content.decode("utf-8")
-        )
-    access_token = login.json()['access_token_general']
+
+    access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
     
     # Fetch data from 121 platform
     response = requests.get(

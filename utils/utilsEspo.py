@@ -1,8 +1,7 @@
 from clients.espo_api_client import EspoAPI
 import requests
 import time
-import logger
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
 from datetime import datetime, timedelta
 from azure.cosmos.exceptions import CosmosResourceExistsError
 

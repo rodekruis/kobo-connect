@@ -2,7 +2,7 @@ import requests
 import time
 import base64
 import logging
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
 from datetime import datetime, timedelta
 from azure.cosmos.exceptions import CosmosResourceExistsError
 

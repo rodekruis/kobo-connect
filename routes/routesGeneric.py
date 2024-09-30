@@ -1,3 +1,10 @@
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from utils.utilsKobo import clean_kobo_data, get_attachment_dict
+import requests
+
+router = APIRouter()
+
 @router.post("/kobo-to-generic")
 async def kobo_to_generic(request: Request):
     """Send a Kobo submission to a generic API.

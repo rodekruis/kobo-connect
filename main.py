@@ -28,15 +28,40 @@ import unicodedata
 import io
 import json
 from dotenv import load_dotenv
+import logging
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from azure.monitor.opentelemetry.exporter import AzureMonitorLogExporter
+from routes import routes121, routesEspo, routesGeneric, routesKobo
 
-from utils.logging import setup_logging
+
 
 # load environment variables
 load_dotenv()
 port = os.environ["PORT"]
 
-# Setup logging
-setup_logging()
+# Set up logs export to Azure Application Insights
+logger_provider = LoggerProvider()
+set_logger_provider(logger_provider)
+exporter = AzureMonitorLogExporter(
+    connection_string=os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+
+# Attach LoggingHandler to root logger
+handler = LoggingHandler()
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.NOTSET)
+logger = logging.getLogger(__name__)
+
+# Silence noisy loggers
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 
 # initialize FastAPI
 app = FastAPI(
@@ -51,6 +76,8 @@ app = FastAPI(
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
     },
 )
+
+
 
 # initialize CosmosDB
 client_ = cosmos_client.CosmosClient(
@@ -69,10 +96,10 @@ async def docs_redirect():
     return RedirectResponse(url="/docs")
 
 # Include routes
-app.include_router(121_routes.router)
-app.include_router(espo_routes.router)
-app.include_router(generic_routes.router)
-app.include_router(kobo_routes.router)
+app.include_router(routes121.router)
+app.include_router(routesEspo.router)
+app.include_router(routesGeneric.router)
+app.include_router(routesKobo.router)
 
 
 
