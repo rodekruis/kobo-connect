@@ -1,6 +1,5 @@
 # pylint: disable=invalid-name
 import uvicorn
-import time
 from fastapi import (
     Security,
     Depends,
@@ -13,55 +12,19 @@ from fastapi import (
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel
-import re
 import requests
-import csv
 import pandas as pd
 from datetime import datetime, timedelta
 import os
-from azure.cosmos.exceptions import CosmosResourceExistsError
-import azure.cosmos.cosmos_client as cosmos_client
 from enum import Enum
-import base64
-import sys
-import unicodedata
-import io
-import json
 from dotenv import load_dotenv
-import logging
-from opentelemetry._logs import set_logger_provider
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from azure.monitor.opentelemetry.exporter import AzureMonitorLogExporter
+from utils.logger import logger
 from routes import routes121, routesEspo, routesGeneric, routesKobo
-
 
 
 # load environment variables
 load_dotenv()
 port = os.environ["PORT"]
-
-# Set up logs export to Azure Application Insights
-logger_provider = LoggerProvider()
-set_logger_provider(logger_provider)
-exporter = AzureMonitorLogExporter(
-    connection_string=os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
-
-# Attach LoggingHandler to root logger
-handler = LoggingHandler()
-logging.getLogger().addHandler(handler)
-logging.getLogger().setLevel(logging.NOTSET)
-logger = logging.getLogger(__name__)
-
-# Silence noisy loggers
-logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("azure").setLevel(logging.WARNING)
-logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
-logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 
 # initialize FastAPI
 app = FastAPI(
@@ -78,18 +41,6 @@ app = FastAPI(
 )
 
 
-
-# initialize CosmosDB
-client_ = cosmos_client.CosmosClient(
-    os.getenv("COSMOS_URL"),
-    {"masterKey": os.getenv("COSMOS_KEY")},
-    user_agent="kobo-connect",
-    user_agent_overwrite=True,
-)
-cosmos_db = client_.get_database_client("kobo-connect")
-cosmos_container_client = cosmos_db.get_container_client("kobo-submissions")
-
-
 @app.get("/", include_in_schema=False)
 async def docs_redirect():
     """Redirect base URL to docs."""
@@ -100,8 +51,6 @@ app.include_router(routes121.router)
 app.include_router(routesEspo.router)
 app.include_router(routesGeneric.router)
 app.include_router(routesKobo.router)
-
-
 
 @app.get("/health")
 async def health():

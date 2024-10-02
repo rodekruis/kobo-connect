@@ -1,8 +1,9 @@
 import requests
+import unicodedata
 from fastapi import HTTPException, Header
 from datetime import datetime, timedelta
-from utils.utilsKobo import required_headers_kobo
-import unicodedata
+from utils.logger import logger
+
 
 def clean_text(text):
     # Normalize text to remove accents

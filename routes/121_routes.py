@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
 import requests
-import re
 import os
+from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from utils.utilsKobo import clean_kobo_data, get_attachment_dict, required_headers_kobo
+from utils.utilsKobo import clean_kobo_data, get_attachment_dict
 from utils.utils121 import login121, required_headers_121
-from utils.logger import logger
+
 
 router = APIRouter()
 
@@ -73,11 +72,10 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = kobo_data[kobo_field]
             else:
                 payload[target_field] = attachments[kobo_value_url]["url"]
-        # else:
-        #     payload[target_field] = ""
+        else:
+            payload[target_field] = ""
 
     payload["referenceId"] = referenceId
-    print(payload)
 
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 

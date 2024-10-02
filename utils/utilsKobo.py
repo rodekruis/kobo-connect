@@ -1,10 +1,8 @@
 import requests
 import time
-import base64
-import logging
 from fastapi import HTTPException, Header
-from datetime import datetime, timedelta
 from azure.cosmos.exceptions import CosmosResourceExistsError
+from utils.cosmos import cosmos_container_client
 
 def required_headers_kobo(kobotoken: str = Header(), koboasset: str = Header()):
     return kobotoken, koboasset
