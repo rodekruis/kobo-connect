@@ -3,14 +3,22 @@ import time
 from fastapi import HTTPException, Header
 from azure.cosmos.exceptions import CosmosResourceExistsError
 from utils.cosmos import cosmos_container_client
+import sys
+
 
 def required_headers_kobo(kobotoken: str = Header(), koboasset: str = Header()):
     return kobotoken, koboasset
 
+
 def required_headers_121_kobo(
-    url121: str = Header(), username121: str = Header(), password121: str = Header(), kobotoken: str = Header(), koboasset: str = Header()
+    url121: str = Header(),
+    username121: str = Header(),
+    password121: str = Header(),
+    kobotoken: str = Header(),
+    koboasset: str = Header(),
 ):
     return url121, username121, password121, kobotoken, koboasset
+
 
 def add_submission(kobo_data):
     """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
@@ -94,4 +102,3 @@ def clean_kobo_data(kobo_data):
         new_key = key.split("/")[-1]
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
     return kobo_data_clean
-

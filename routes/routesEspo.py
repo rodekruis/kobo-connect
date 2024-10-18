@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from utils.utilsKobo import (
     add_submission,
     clean_kobo_data,
     get_attachment_dict,
-    update_submission_status
+    get_kobo_attachment,
+    update_submission_status,
 )
 from utils.utilsEspo import espo_request, required_headers_espocrm
-import logging
+from utils.logger import logger
+from clients.espo_api_client import EspoAPI
 import os
+import re
+import base64
 
 router = APIRouter()
+
 
 @router.post("/kobo-to-espocrm")
 async def kobo_to_espocrm(
@@ -214,4 +219,3 @@ async def kobo_to_espocrm(
     logger.info("Success", extra=extra_logs)
     update_submission_status(submission, "success")
     return JSONResponse(status_code=200, content=target_response)
-
