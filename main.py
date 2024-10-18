@@ -1,26 +1,11 @@
 # pylint: disable=invalid-name
 import uvicorn
-from fastapi import (
-    Security,
-    Depends,
-    FastAPI,
-    APIRouter,
-    Request,
-    HTTPException,
-    Header,
-)
+from fastapi import FastAPI
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.security.api_key import APIKeyHeader, APIKey
-from pydantic import BaseModel
 import requests
-import pandas as pd
-from datetime import datetime, timedelta
 import os
-from enum import Enum
 from dotenv import load_dotenv
-from utils.logger import logger
 from routes import routes121, routesEspo, routesGeneric, routesKobo
-
 
 # load environment variables
 load_dotenv()
@@ -33,7 +18,7 @@ app = FastAPI(
     "Built with love by [NLRC 510](https://www.510.global/). "
     "See [the project on GitHub](https://github.com/rodekruis/kobo-connect) "
     "or [contact us](mailto:support@510.global).",
-    version="0.0.2",
+    version="0.0.3",
     license_info={
         "name": "AGPL-3.0 license",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
@@ -46,11 +31,13 @@ async def docs_redirect():
     """Redirect base URL to docs."""
     return RedirectResponse(url="/docs")
 
+
 # Include routes
 app.include_router(routes121.router)
 app.include_router(routesEspo.router)
 app.include_router(routesGeneric.router)
 app.include_router(routesKobo.router)
+
 
 @app.get("/health")
 async def health():
