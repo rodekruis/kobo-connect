@@ -84,7 +84,7 @@ async def kobo_to_espocrm(
 
         multi = False
         repeat, repeat_no, repeat_question = False, 0, ""
-        related, related_entity, related_entity_field = False, "", ""
+        related, related_entity, linked_field, related_entity_field = False, "", "", ""
 
         # determine if kobo_field is of type multi or repeat
         if "multi." in kobo_field:
@@ -110,7 +110,8 @@ async def kobo_to_espocrm(
         # else check if target_field contains a related entity and the relating field
         elif len(target_field.split(".")) == 3:
             target_entity = target_field.split(".")[0]
-            related_entity = target_field.split(".")[1]
+            linked_field = target_field.split(".")[1]
+            related_entity = linked_field.capitalize()
             related_entity_field = target_field.split(".")[2]
             related = True
         else:
@@ -163,7 +164,7 @@ async def kobo_to_espocrm(
                 update_submission_status(submission, "failed", error_message)
             else:
                 kobo_value = related_records[0]["id"]
-                target_field = related_entity + "Id"
+                target_field = linked_field + "Id"
 
         # process individual field; if it's an attachment, upload it to EspoCRM
         kobo_value_url = str(kobo_value).replace(" ", "_")
