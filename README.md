@@ -58,6 +58,7 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
   - add a question called `skipconnect` in the Kobo form;
   - whenever its value is `1` (based on some condition), the submission will not be sent to EspoCRM.
 - If you need to **link the new record with another pre-existing record in** EspoCRM:
+  - ensure that the API user has read-access to the related entity;
   - under the header name insert the name of the Kobo question, as usual;
   - under the header value insert the entity name, followed by a dot (`.`), followed by the field name of type `Link` (the one containing the related entity record), followed by a dot (`.`), followed by the field name of the related entity used to relate the two.
   - Example headers:
