@@ -82,7 +82,9 @@ async def kobo_to_espocrm(
     payload, target_entity = {}, ""
     for kobo_field, target_field in request.headers.items():
 
-        kobo_value, multi, repeat, repeat_no, repeat_question = "", False, False, 0, ""
+        multi = False
+        repeat, repeat_no, repeat_question = False, 0, ""
+        related, related_entity, related_entity_field = False, "", ""
 
         # determine if kobo_field is of type multi or repeat
         if "multi." in kobo_field:
@@ -105,6 +107,12 @@ async def kobo_to_espocrm(
             target_field = target_field.split(".")[1]
             if target_entity not in payload.keys():
                 payload[target_entity] = {}
+        # else check if target_field contains a related entity and the relating field
+        elif len(target_field.split(".")) == 3:
+            target_entity = target_field.split(".")[0]
+            related_entity = target_field.split(".")[1]
+            related_entity_field = target_field.split(".")[2]
+            related = True
         else:
             continue
 
@@ -123,6 +131,39 @@ async def kobo_to_espocrm(
                 continue
         else:
             kobo_value = kobo_data[kobo_field]
+
+        # if target_field contains related_entity:
+        # 1) replace kobo_value with the id of the related_entity record whose related_entity_field equals kobo_value
+        # 2) replace target_field with related_entity
+        if related:
+            params_related = {
+                "where": [
+                    {
+                        "type": "equals",
+                        "attribute": related_entity_field,
+                        "value": kobo_value,
+                    }
+                ]
+            }
+            related_records = espo_request(
+                submission,
+                client,
+                "GET",
+                related_entity,
+                params=params_related,
+                logs=extra_logs,
+            )["list"]
+            if len(related_records) != 1:
+                error_message = (
+                    f"Found {len(related_records)} records of entity {related_entity} "
+                    f"with field {related_entity_field} "
+                    f"equal to {kobo_value}: record must be unique"
+                )
+                logger.error(f"Failed: {error_message}", extra=extra_logs)
+                update_submission_status(submission, "failed", error_message)
+            else:
+                kobo_value = related_records[0]["id"]
+                target_field = related_entity + "Id"
 
         # process individual field; if it's an attachment, upload it to EspoCRM
         kobo_value_url = str(kobo_value).replace(" ", "_")
@@ -194,7 +235,7 @@ async def kobo_to_espocrm(
                 error_message = (
                     f"Found {len(records)} records of entity {target_entity} "
                     f"with field {update_record_payload[target_entity]['field']} "
-                    f"equal to {update_record_payload[target_entity]['value']}"
+                    f"equal to {update_record_payload[target_entity]['value']}: record must be unique"
                 )
                 logger.error(f"Failed: {error_message}", extra=extra_logs)
                 update_submission_status(submission, "failed", error_message)
