@@ -111,7 +111,7 @@ async def kobo_to_espocrm(
         elif len(target_field.split(".")) == 3:
             target_entity = target_field.split(".")[0]
             linked_field = target_field.split(".")[1]
-            related_entity = linked_field.capitalize()
+            related_entity = linked_field[0].upper() + linked_field[1:]
             related_entity_field = target_field.split(".")[2]
             related = True
         else:
