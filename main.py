@@ -1,4 +1,3 @@
-# pylint: disable=invalid-name
 import uvicorn
 import time
 from fastapi import (
@@ -18,7 +17,7 @@ from clients.espo_api_client import EspoAPI
 import requests
 import csv
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 from azure.cosmos.exceptions import CosmosResourceExistsError
 import azure.cosmos.cosmos_client as cosmos_client
@@ -537,7 +536,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
-
     # POST to 121 import endpoint
     import_response = requests.post(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
@@ -568,236 +566,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     return JSONResponse(
         status_code=import_response.status_code, content=import_response_message
     )
-
-########################################################################################################################
-
-@app.post("/kobo-update-121")
-async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121)):
-    """Update a 121 record from a Kobo submission"""
-
-    kobo_data = await request.json()
-    extra_logs = {"environment": os.getenv("ENV")}
-    try:
-        extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
-        extra_logs["kobo_form_version"] = str(kobo_data["__version__"])
-        extra_logs["kobo_submission_id"] = str(kobo_data["_id"])
-    except KeyError:
-        return JSONResponse(
-            status_code=422,
-            content={"detail": "Not a valid Kobo submission"},
-        )
-    extra_logs["121_url"] = request.headers["url121"]
-
-    kobo_data = clean_kobo_data(kobo_data)
-
-    kobotoken, koboasset = None, None
-    if 'kobotoken' in request.headers.keys():
-        kobotoken = request.headers['kobotoken']
-    if 'koboasset' in request.headers.keys():
-        koboasset = request.headers['koboasset']
-    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
-
-    if 'programid' in request.headers.keys():
-        programid = request.headers['programid']
-    elif 'programid' in kobo_data.keys():
-        programid = kobo_data['programid']
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"'programid' needs to be specified in headers or submission body"
-        )
-    extra_logs["121_program_id"] = programid
-
-    referenceId = kobo_data['referenceid']
-  
-    access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
-
-    # Create API payload body
-    intvalues = ['maxPayments', 'paymentAmountMultiplier', 'inclusionScore']
-
-    for kobo_field, target_field in request.headers.items():
-        payload = {
-            "data": {},
-            "reason": "Validated during field validation"
-        }
-        if kobo_field in kobo_data.keys():
-            kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
-            kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
-            if target_field in intvalues:
-                payload["data"][target_field] = int(kobo_data[kobo_field])
-            elif target_field == 'scope':
-                payload["data"][target_field] = clean_text(kobo_data[kobo_field])
-            elif kobo_value_url not in attachments.keys():
-                payload["data"][target_field] = kobo_data[kobo_field]
-            else:
-                payload["data"][target_field] = attachments[kobo_value_url]['url']
-
-            # POST to target API
-            if target_field != 'referenceId':
-                response = requests.patch(
-                    f"{request.headers['url121']}/api/programs/{programid}/registrations/{referenceId}",
-                    headers={'Cookie': f"access_token_general={access_token}"},
-                    json=payload
-                )
-
-                target_response = response.content.decode("utf-8")
-                logger.info(target_response)
-        
-    status_response = requests.patch(
-                    f"{request.headers['url121']}/api/programs/{programid}/registrations/status?dryRun=false&filter.referenceId=$in:{referenceId}",
-                    headers={'Cookie': f"access_token_general={access_token}"},
-                    json={"status": "validated"}
-                )
-    
-    if status_response.status_code != 202:
-        raise HTTPException(status_code=response.status_code, detail="Failed to set status of PA to validated")
-    
-    update_response_message = status_response.content.decode("utf-8")
-    if 200 <= status_response.status_code <= 299:
-        logger.info(
-            f"Success: 121 update returned {status_response.status_code} {update_response_message}",
-            extra=extra_logs,
-        )
-    elif status_response.status_code >= 400:
-        logger.error(
-            f"Failed: 121 update returned {status_response.status_code} {update_response_message}",
-            extra=extra_logs,
-        )
-        raise HTTPException(
-            status_code=status_response.status_code, detail=update_response_message
-        )
-    else:
-        logger.warning(
-            f"121 update returned {status_response.status_code} {update_response_message}",
-            extra=extra_logs,
-        )
-
-    return JSONResponse(
-        status_code=status_response.status_code, content=update_response_message
-    )
-
-########################################################################################################################
-
-def required_headers_121_kobo(
-    url121: str = Header(), username121: str = Header(), password121: str = Header(), kobotoken: str = Header(), koboasset: str = Header()
-):
-    return url121, username121, password121, kobotoken, koboasset
-
-@app.post("/update-kobo-csv")
-async def prepare_kobo_validation(request: Request, programId: int, kobousername: str, dependencies=Depends(required_headers_121_kobo)):
-    """
-    Prepare Kobo validation by fetching data from 121 platform,
-    converting it to CSV, and uploading to Kobo.
-    """
-    # get access token from cookie
-    body = {'username': request.headers['username121'], 'password': request.headers['password121']}
-    url = f"{request.headers['url121']}/api/users/login"
-    login = requests.post(url, data=body)
-    if login.status_code >= 400:
-        raise HTTPException(
-            status_code=login.status_code,
-            detail=login.content.decode("utf-8")
-        )
-    access_token = login.json()['access_token_general']
-    
-    # Fetch data from 121 platform
-    response = requests.get(
-        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-people-affected", 
-        headers={'Cookie': f"access_token_general={access_token}"}
-        )
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Failed to fetch data from 121 platform")
-    
-    data = response.json()
-
-    # Convert JSON to CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # Ensure we have data to process
-    if data and 'data' in data and len(data['data']) > 0:
-        # Get the keys (column names) from the first row
-        fieldnames = list(data['data'][0].keys())
-
-        # Write header
-        writer.writerow(fieldnames)
-
-        # Write rows
-        for row in data['data']:
-            # Create a list of values in the same order as fieldnames
-            row_data = [row.get(field, '') for field in fieldnames]
-            writer.writerow(row_data)
-
-    csv_content = output.getvalue().encode('utf-8')
-
-    # Prepare the payload for Kobo
-    base64_encoded_csv = base64.b64encode(csv_content).decode('utf-8')
-    metadata = json.dumps({"filename": "ValidationDataFrom121.csv"})
-    
-    payload = {
-        "description": "default",
-        "file_type": "form_media",
-        "metadata": metadata,
-        "base64Encoded": f"data:text/csv;base64,{base64_encoded_csv}"
-    }
-
-    # Kobo headers
-    headers = {
-        "Authorization": f"Token {request.headers['kobotoken']}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    #If exists, remove existing ValidationDataFrom121.csv
-    media_response = requests.get(
-        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
-        headers=headers
-        )
-    if media_response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Failed to fetch media from kobo")
-    
-    media = media_response.json()
-
-    # Check if ValidationDataFrom121.csv exists and get its uid
-    existing_file_uid = None
-    for file in media.get('results', []):
-        if file.get('metadata', {}).get('filename') == "ValidationDataFrom121.csv":
-            existing_file_uid = file.get('uid')
-            break
-
-    # If the file exists, delete it
-    if existing_file_uid:
-        delete_response = requests.delete(
-            f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/{existing_file_uid}/",
-            headers={"Authorization": f"Token {request.headers['kobotoken']}"}
-        )
-        if delete_response.status_code != 204:
-            raise HTTPException(status_code=delete_response.status_code, detail="Failed to delete existing file from Kobo")
-
-    
-    upload_response = requests.post(
-        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
-        headers=headers,
-        data=payload
-    )
-
-    if upload_response.status_code != 201:
-        raise HTTPException(status_code=upload_response.status_code, detail="Failed to upload file to Kobo")
-
-    # Redeploy the Kobo form
-    redeploy_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/deployment/"
-    redeploy_payload = {"active": True}
-    
-    redeploy_response = requests.patch(
-        redeploy_url,
-        headers=headers,
-        json=redeploy_payload
-    )
-
-    if redeploy_response.status_code != 200:
-        raise HTTPException(status_code=redeploy_response.status_code, detail="Failed to redeploy Kobo form")
-
-
-    return {"message": "Validation data prepared and uploaded successfully", "kobo_response": upload_response.json()}
-
 
 ########################################################################################################################
 
