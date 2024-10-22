@@ -18,6 +18,7 @@ import requests
 import csv
 import pandas as pd
 from datetime import datetime
+from datetime import timedelta
 import os
 from azure.cosmos.exceptions import CosmosResourceExistsError
 import azure.cosmos.cosmos_client as cosmos_client
