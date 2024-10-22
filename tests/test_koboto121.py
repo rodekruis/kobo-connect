@@ -9,12 +9,13 @@ from main import app
 
 client = TestClient(app)
 
-def test_kobo_to_121_payload():
-    with open(os.path.join(os.path.dirname(__file__), 'kobo_data.json'), 'r') as file:
-        kobo_data = json.load(file)
+with open(os.path.join(os.path.dirname(__file__), 'kobo_data.json'), 'r') as file:
+    kobo_data = json.load(file)
 
-    with open(os.path.join(os.path.dirname(__file__), 'kobo_headers.json'), 'r') as file:
-        kobo_headers = json.load(file)
+with open(os.path.join(os.path.dirname(__file__), 'kobo_headers.json'), 'r') as file:
+    kobo_headers = json.load(file)
+
+def test_kobo_to_121_payload():
 
     response = client.post(
         "/kobo-to-121?test_mode=true",
@@ -45,3 +46,14 @@ def test_kobo_to_121_payload():
     assert payload["wardName"] == "Sinazongwe"
     assert payload["zrcsName"] == "adsf"
     assert payload["referenceId"] == "7e7b954f-83easdfadsfasdfadsfad"
+
+def test_kobo_to_121_skipconnect():
+    payload = kobo_data.copy()
+    payload["skipconnect"] = "1"
+    headers = kobo_headers.copy()
+    headers["skipconnect"] = "skipconnect"
+
+    response = client.post("/kobo-to-121", headers= headers, json=payload)
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "Skipping connection to 121"}
