@@ -26,8 +26,6 @@ from enum import Enum
 import base64
 import sys
 import unicodedata
-import io
-import json
 from dotenv import load_dotenv
 import logging
 from opentelemetry._logs import set_logger_provider
@@ -108,7 +106,7 @@ def add_submission(kobo_data):
         )
         if submission["status"] == "pending":
             raise HTTPException(
-                status_code=400, detail="Submission is still being processed."
+                status_code=400, detail=f"Submission is still being processed."
             )
     return submission
 
@@ -413,58 +411,6 @@ def required_headers_121(
 ):
     return url121, username121, password121
 
-# Dictionary to store cookies, credentials, and expiration times
-cookie121 = {}
-
-def login121(url121, username, password):
-    # Check if URL exists in the dictionary
-    if url121 in cookie121:
-        cookie_data = cookie121[url121]
-        # Check if the stored username and password match
-        if cookie_data['username'] == username and cookie_data['password'] == password:
-            cookie_expiry = cookie_data['expiry']
-            current_time = datetime.utcnow()
-
-            # Check if the cookie is valid for at least 24 more hours
-            if (cookie_expiry - current_time) >= timedelta(hours=24):
-                logger.info(f"Using cached cookie for {url121}")
-                return cookie_data['cookie']
-            else:
-                logger.info(f"Cookie for {url121} is valid for less than 24 hours, refreshing cookie...")
-
-    # Otherwise, request a new cookie
-    body = {'username': username, 'password': password}
-    url = f'{url121}/api/users/login'
-    
-    try:
-        login_response = requests.post(url, data=body)
-        login_response.raise_for_status()
-    except requests.RequestException as e:
-        error_message = str(e)
-        logger.error(
-            f"Failed: 121 login returned {login_response.status_code} {error_message}",
-            extra=None,
-        )
-        raise HTTPException(
-            status_code=login_response.status_code, detail=error_message
-        )
-    
-    # Parse the response
-    response_data = login_response.json()
-    cookie = response_data['access_token_general']
-
-    # Store the new cookie, username, password, and expiration time in the dictionary
-    expiry_datetime = datetime.fromisoformat(response_data['expires'].replace("Z", ""))
-    
-    cookie121[url121] = {
-        'username': username,
-        'password': password,
-        'cookie': cookie,
-        'expiry': expiry_datetime
-    }
-    
-    logger.info(f"New cookie stored for {url121} with credentials.")
-    return cookie
 
 @app.post("/kobo-to-121")
 async def kobo_to_121(request: Request, dependencies=Depends(required_headers_121)):
@@ -535,7 +481,23 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     payload["referenceId"] = referenceId
 
-    access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
+    # get access token from cookie
+    body = {
+        "username": request.headers["username121"],
+        "password": request.headers["password121"],
+    }
+    url = f"{request.headers['url121']}/api/users/login"
+    login_response = requests.post(url, data=body)
+    if login_response.status_code >= 400:
+        error_message = login_response.content.decode("utf-8")
+        logger.info(
+            f"Failed: 121 login returned {login_response.status_code} {error_message}",
+            extra=extra_logs,
+        )
+        raise HTTPException(
+            status_code=login_response.status_code, detail=error_message
+        )
+    access_token = login_response.json()["access_token_general"]
 
     # POST to 121 import endpoint
     import_response = requests.post(
@@ -543,7 +505,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
         headers={"Cookie": f"access_token_general={access_token}"},
         json=[payload],
     )
-
     import_response_message = import_response.content.decode("utf-8")
     if 200 <= import_response.status_code <= 299:
         logger.info(
@@ -567,6 +528,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     return JSONResponse(
         status_code=import_response.status_code, content=import_response_message
     )
+
 
 ########################################################################################################################
 
