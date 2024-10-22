@@ -86,8 +86,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     # Continue with the POST if not in test mode
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
-    print(payload)
-
     # POST to 121 import endpoint
     import_response = requests.post(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
