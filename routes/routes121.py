@@ -10,7 +10,7 @@ from utils.logger import logger
 router = APIRouter()
 
 @router.post("/kobo-to-121")
-async def kobo_to_121(request: Request, dependencies=Depends(required_headers_121)):
+async def kobo_to_121(request: Request, dependencies=Depends(required_headers_121), test_mode: bool = False):
     """Send a Kobo submission to 121."""
 
     kobo_data = await request.json()
@@ -78,8 +78,14 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
     payload["referenceId"] = referenceId
 
+    # If test_mode is True, return the payload without posting it
+    if test_mode:
+        return JSONResponse(status_code=200, content={"payload": payload})
+
+    # Continue with the POST if not in test mode
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
+    print(payload)
 
     # POST to 121 import endpoint
     import_response = requests.post(
