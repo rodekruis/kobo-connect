@@ -38,7 +38,7 @@ def test_kobo_to_121_payload():
     assert payload["fullName"] == "asdf"
     assert payload["maxPayments"] == 5
     assert payload["NRC"] == "12345"
-    assert payload["NRCpicture"] == "https://kc.ifrc.org/media/large?media_file=smeberendschot%2Fattachments%2F118047ed44ed4896b3e6c443736442c6%2F7e7b954f-83e6-406f-9335-368ae153f1aa%2FOrka-14_36_18.jpg"
+    assert payload["NRCpicture"] == "https://kc.ifrc.org/media/large?media_file=user%2Fattachments%2F118047ed44ed4896b3e6c443736442c6%2F7e7b954f-83e6-406f-9335-368ae153f1aa%2FOrka-14_36_18.jpg"
     assert payload["phoneNumber"] == "0612345678"
     assert payload["preferredLanguage"] == "en"
     assert payload["selectionCriteria"] == "Disabled"
