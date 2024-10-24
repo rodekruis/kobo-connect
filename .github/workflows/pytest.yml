@@ -26,6 +26,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f pyproject.toml ]; then pip install .; fi
+    - name: Set up environment variables
+      run: echo "APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" >> $GITHUB_ENV
     - name: Test with pytest
       run: |
         pytest
