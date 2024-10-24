@@ -2,6 +2,9 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 import requests
 import re
 import os
+import csv
+import pandas as pd
+from datetime import datetime, timedelta
 from fastapi.responses import JSONResponse
 from utils.utilsKobo import clean_kobo_data, get_attachment_dict, required_headers_kobo
 from utils.utils121 import login121, required_headers_121, clean_text
@@ -119,7 +122,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 ########################################################################################################################
 
 @router.post("/kobo-update-121")
-async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121)):
+async def kobo_update_121(request: Request, dependencies=Depends(required_headers_121), test_mode: bool = False):
     """Update a 121 record from a Kobo submission"""
 
     kobo_data = await request.json()
@@ -156,8 +159,6 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
     extra_logs["121_program_id"] = programid
 
     referenceId = kobo_data['referenceid']
-  
-    access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
     # Create API payload body
     intvalues = ['maxPayments', 'paymentAmountMultiplier', 'inclusionScore']
@@ -178,6 +179,11 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
                 payload["data"][target_field] = kobo_data[kobo_field]
             else:
                 payload["data"][target_field] = attachments[kobo_value_url]['url']
+
+            if test_mode:
+                return JSONResponse(status_code=200, content={"payload": payload})
+            
+            access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
             # POST to target API
             if target_field != 'referenceId':
@@ -226,7 +232,7 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
 ###########
 @router.get("/121-program")
 async def create_121_program_from_kobo(
-    request: Request, dependencies=Depends(required_headers_kobo)
+    request: Request, dependencies=Depends(required_headers_kobo), test_mode: bool = False
 ):
     """Utility endpoint to automatically create a 121 Program in 121 from a koboform, including REST Service \n
     Does only support the IFRC server kobo.ifrc.org \n
@@ -402,6 +408,9 @@ async def create_121_program_from_kobo(
             }
             data["programQuestions"].append(question)
 
+    if test_mode:
+        return JSONResponse(status_code=200, content=data)
+    
     # Create kobo-connect rest service
     restServicePayload = {
         "name": "Kobo Connect",
