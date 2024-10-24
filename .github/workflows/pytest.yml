@@ -32,6 +32,8 @@ jobs:
         echo "COSMOS_URL=${{ secrets.COSMOS_URL }}" >> $GITHUB_ENV
         echo "COSMOS_KEY=${{ secrets.COSMOS_KEY }}" >> $GITHUB_ENV
         echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
+        echo "TEST_KOBO_ASSETID=${{ secrets.TEST_KOBO_ASSETID }}" >> $GITHUB_ENV
+        echo "TEST_KOBO_TOKEN=${{ secrets.TEST_KOBO_TOKEN }}" >> $GITHUB_ENV
     - name: Test with pytest
       run: |
         pytest
