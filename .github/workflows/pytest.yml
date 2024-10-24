@@ -27,7 +27,10 @@ jobs:
         pip install flake8 pytest
         if [ -f pyproject.toml ]; then pip install .; fi
     - name: Set up environment variables
-      run: echo "APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" >> $GITHUB_ENV
+      run: |
+        echo "APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" >> $GITHUB_ENV
+        echo "COSMOS_URL=${{ secrets.COSMOS_URL }}" >> $GITHUB_ENV
+        echo "COSMOS_KEY=${{ secrets.COSMOS_KEY }}" >> $GITHUB_ENV
     - name: Test with pytest
       run: |
         pytest
