@@ -4,7 +4,7 @@ import json
 from fastapi.testclient import TestClient
 from dotenv import load_dotenv
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import app
 
@@ -15,8 +15,9 @@ load_dotenv()
 kobotoken = os.environ["TEST_KOBO_TOKEN"]
 koboassetid = os.environ["TEST_KOBO_ASSETID"]
 
-with open(os.path.join(os.path.dirname(__file__), 'program121.json'), 'r') as file:
+with open(os.path.join(os.path.dirname(__file__), "program121.json"), "r") as file:
     program121 = json.load(file)
+
 
 def test_121_program():
     headers = {"kobotoken": kobotoken, "koboasset": koboassetid}
