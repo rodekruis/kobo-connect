@@ -313,8 +313,8 @@ async def kobo_to_linked_kobo(
     if response.status_code == 200:
         logger.info("Success", extra=extra_logs)
         update_submission_status(submission, "success")
-        return JSONResponse(status_code=200, content=json.loads(response.content))
+        return JSONResponse(status_code=200, content="Success")
     else:
         logger.error("Failed", extra=extra_logs)
         update_submission_status(submission, "failed", response.content)
-        return JSONResponse(status_code=500, content=json.loads(response.content))
+        return JSONResponse(status_code=response.status_code, content="Failed")
