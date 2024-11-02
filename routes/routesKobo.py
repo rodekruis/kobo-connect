@@ -290,7 +290,7 @@ async def kobo_to_linked_kobo(
     response = requests.get(target_url, headers=koboheaders)
     assetdata = json.loads(response.content)
 
-    # update form
+    # update child form with new choice list
     assetdata["content"]["choices"] = [
         choice
         for choice in assetdata["content"]["choices"]
@@ -299,13 +299,13 @@ async def kobo_to_linked_kobo(
     assetdata["content"]["choices"].extend(new_choices_form)
     requests.patch(target_url, headers=koboheaders, json=assetdata)
 
-    # get latest version id
+    # get latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     newassetdata = json.loads(response.content)
     newversionid = newassetdata["version_id"]
 
-    # deploy latest version id
+    # deploy latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/deployment/"
     payload = {"version_id": newversionid, "active": True}
     response = requests.patch(target_url, headers=koboheaders, data=payload)
@@ -313,8 +313,8 @@ async def kobo_to_linked_kobo(
     if response.status_code == 200:
         logger.info("Success", extra=extra_logs)
         update_submission_status(submission, "success")
-        return JSONResponse(status_code=200, content=response.content)
+        return JSONResponse(status_code=200, content=json.loads(response.content))
     else:
         logger.error("Failed", extra=extra_logs)
         update_submission_status(submission, "failed", response.content)
-        return JSONResponse(status_code=500, content=response.content)
+        return JSONResponse(status_code=500, content=json.loads(response.content))
