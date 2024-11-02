@@ -267,7 +267,7 @@ async def kobo_to_linked_kobo(
 
     # create new choice list based on parent form submissions
     new_choices_form, kuids = [], []
-    for submission in submissions.items():
+    for submission in submissions["results"]:
         if request.headers["parentquestion"] not in submission.keys():
             continue
         kuid = str(uuid.uuid4())[:10].replace("-", "")
