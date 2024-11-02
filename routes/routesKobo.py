@@ -266,22 +266,28 @@ async def kobo_to_linked_kobo(
     parent_submissions = json.loads(response.content)
 
     # create new choice list based on parent form submissions
-    new_choices_form, kuids = [], []
+    new_choices_form, kuids, names = [], [], []
     for parent_submission in parent_submissions["results"]:
         if request.headers["parentquestion"] not in parent_submission.keys():
             continue
+
+        name = parent_submission[request.headers["parentquestion"]]
+        if name in names:
+            continue  # avoid duplicate names
+        names.append(name)
+
         kuid = str(uuid.uuid4())[:10].replace("-", "")
         while kuid in kuids:
-            kuid = str(uuid.uuid4())[:10].replace("-", "")
+            kuid = str(uuid.uuid4())[:10].replace("-", "")  # avoid duplicate kuids
         kuids.append(kuid)
 
         new_choices_form.append(
             {
-                "name": parent_submission[request.headers["parentquestion"]],
+                "name": name,
                 "$kuid": kuid,
-                "label": [parent_submission[request.headers["parentquestion"]]],
+                "label": [name],
                 "list_name": request.headers["childlist"],
-                "$autovalue": parent_submission[request.headers["parentquestion"]],
+                "$autovalue": name,
             }
         )
 
@@ -316,7 +322,4 @@ async def kobo_to_linked_kobo(
         return JSONResponse(status_code=200, content={"detail": "Success"})
     else:
         logger.error("Failed", extra=extra_logs)
-        update_submission_status(submission, "failed", response.content)
-        return JSONResponse(
-            status_code=response.status_code, content={"detail": "Failed"}
-        )
+        update_submission_status(submission, "failed")
