@@ -234,7 +234,7 @@ async def create_kobo_headers(
 async def kobo_to_linked_kobo(
     request: Request, dependencies=Depends(required_headers_linked_kobo)
 ):
-    """Update a linked Kobo form based on this submission."""
+    """Update a multiple-choice question in a Kobo form (child) based on the submissions of another one (parent)."""
 
     kobo_data = await request.json()
     extra_logs = {"environment": os.getenv("ENV")}
