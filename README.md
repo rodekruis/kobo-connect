@@ -16,16 +16,16 @@ Example: the parent form could be a beneficiary registration form, and the child
 
 ### Setup
 
-1. Define which questions in the parent Kobo form need to be saved in which multiple-choice question in the child form.
+1. Define which question in the parent Kobo form needs to be saved in which multiple-choice question in the child form.
 2. [Register a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html) for the Kobo form of interest and give it a descriptive name.
 3. Insert as `Endpoint URL`
 ```
 https://kobo-connect.azurewebsites.net/kobo-to-linked-kobo
 ```
-4. In Kobo REST Services, add a header under `Custom HTTP Headers`:
+4. Add the following headers under `Custom HTTP Headers`:
    - Under `Name` insert `kobotoken` and under `Value` your Kobo token (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token)).
-   - Under `Name` insert `childasset` and under `Value` the ID of the child form.
-   - Under `Name` insert `parentasset` and under `Value` the ID of the parent form.
+   - Under `Name` insert `childasset` and under `Value` the ID of the child form (see [where to find it](https://im.unhcr.org/kobosupport/)).
+   - Under `Name` insert `parentasset` and under `Value` the ID of the parent form (see [where to find it](https://im.unhcr.org/kobosupport/)).
    - Under `Name` insert `parentquestion` and under `Value` the name of the _question_ in the parent form (whose answers will determine the choices in the child form).
    - Under `Name` insert `childlist` and under `Value` the name of the _list_ (not question) in the child form. Example: if the question `type` is `select_one list_name`, the value should be `list_name`.
 
@@ -48,7 +48,7 @@ Using the [`kobo-to-espocrm`](https://kobo-connect.azurewebsites.net/docs#/defau
 ```
 https://kobo-connect.azurewebsites.net/kobo-to-espocrm
 ```
-6. In Kobo REST Services, add a header under `Custom HTTP Headers`:
+6. Add the following headers under `Custom HTTP Headers`:
    - Under `Name` insert `targeturl` and under `Value` the EspoCRM URL (for example, https://espocrminstancex.com).
    - Under `Name` insert `targetkey` and under `Value` the (newly) created API Key (from EspoCRM API User).
 9. For each question, add a header that specifies which Kobo questions corresponds to which entity and field EspoCRM:
