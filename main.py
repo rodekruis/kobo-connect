@@ -14,7 +14,7 @@ port = os.environ["PORT"]
 # initialize FastAPI
 app = FastAPI(
     title="kobo-connect",
-    description="Connect Kobo to anything. \n"
+    description="Connect Kobo to anything, including itself. \n"
     "Built with love by [NLRC 510](https://www.510.global/). "
     "See [the project on GitHub](https://github.com/rodekruis/kobo-connect) "
     "or [contact us](mailto:support@510.global).",

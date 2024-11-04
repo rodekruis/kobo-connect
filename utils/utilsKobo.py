@@ -102,3 +102,13 @@ def clean_kobo_data(kobo_data):
         new_key = key.split("/")[-1]
         kobo_data_clean[new_key] = kobo_data_clean.pop(key)
     return kobo_data_clean
+
+
+def required_headers_linked_kobo(
+    kobotoken: str = Header(),
+    childasset: str = Header(),
+    childlist: str = Header(),
+    parentasset: str = Header(),
+    parentquestion: str = Header(),
+):
+    return kobotoken, childasset, childlist, parentasset, parentquestion
