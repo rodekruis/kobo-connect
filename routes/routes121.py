@@ -359,7 +359,7 @@ async def create_121_program_from_kobo(
             koboConnectHeader.append(row["name"])
             question = {
                 "name": row["name"],
-                "label": {"en": str(row["label"][0])},
+                "label": {"en": str(row["label"][0]) if not isinstance(row["label"], float) else row["name"]},
                 "answerType": type_mapping[row["type"].split()[0]],
                 "questionType": "standard",
                 "options": [],
