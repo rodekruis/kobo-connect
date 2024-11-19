@@ -272,10 +272,12 @@ async def kobo_to_linked_kobo(
     # create new choice list based on parent form submissions
     new_choices_form, kuids, names = [], [], []
     for parent_submission in parent_submissions["results"]:
-        if request.headers["parentquestion"] not in parent_submission.keys():
-            continue
 
         parent_data = clean_kobo_data(parent_submission)
+        parent_question = request.headers["parentquestion"].lower()
+
+        if parent_question not in parent_data.keys():
+            continue
 
         name = parent_data[request.headers["parentquestion"].lower()]
         if name in names:
