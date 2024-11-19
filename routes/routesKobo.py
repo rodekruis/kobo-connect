@@ -264,8 +264,8 @@ async def kobo_to_linked_kobo(
     koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
     response = requests.get(target_url, headers=koboheaders)
     parent_submissions = json.loads(response.content)
-    logging.info("parent_submissions")
-    logging.info(parent_submissions["results"][0])
+    logger.info("parent_submissions")
+    logger.info(parent_submissions["results"][0])
 
     # create new choice list based on parent form submissions
     new_choices_form, kuids, names = [], [], []
@@ -292,15 +292,15 @@ async def kobo_to_linked_kobo(
                 "$autovalue": name,
             }
         )
-    logging.info("new_choices_form")
-    logging.info(new_choices_form)
+    logger.info("new_choices_form")
+    logger.info(new_choices_form)
 
     # get child form
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     assetdata = json.loads(response.content)
-    logging.info("get child form")
-    logging.info(assetdata)
+    logger.info("get child form")
+    logger.info(assetdata)
 
     # update child form with new choice list
     assetdata["content"]["choices"] = [
@@ -309,19 +309,19 @@ async def kobo_to_linked_kobo(
         if choice["list_name"] != request.headers["childlist"]
     ]
     assetdata["content"]["choices"].extend(new_choices_form)
-    logging.info("update child form with new choice list")
-    logging.info(assetdata)
+    logger.info("update child form with new choice list")
+    logger.info(assetdata)
     response = requests.patch(target_url, headers=koboheaders, json=assetdata)
-    logging.info(response.status_code)
-    logging.info(response.content)
+    logger.info(response.status_code)
+    logger.info(response.content)
 
     # get latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     newassetdata = json.loads(response.content)
     newversionid = newassetdata["version_id"]
-    logging.info("get child form")
-    logging.info(assetdata)
+    logger.info("get child form")
+    logger.info(assetdata)
 
     # deploy latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/deployment/"
