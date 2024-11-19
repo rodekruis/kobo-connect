@@ -275,7 +275,9 @@ async def kobo_to_linked_kobo(
         if request.headers["parentquestion"] not in parent_submission.keys():
             continue
 
-        name = parent_submission[request.headers["parentquestion"]]
+        parent_data = clean_kobo_data(parent_submission)
+
+        name = parent_data[request.headers["parentquestion"].lower()]
         if name in names:
             continue  # avoid duplicate names
         names.append(name)
