@@ -258,8 +258,6 @@ async def kobo_to_linked_kobo(
             status_code=200,
             content={"detail": "Submission has already been successfully processed"},
         )
-    print("kobo_data")
-    print(kobo_data)
 
     # get submissions of parent form
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['parentasset']}/data/?format=json"
@@ -272,32 +270,29 @@ async def kobo_to_linked_kobo(
     # create new choice list based on parent form submissions
     new_choices_form, kuids, names = [], [], []
     for parent_submission in parent_submissions["results"]:
+        for key in parent_submission.keys():
+            if key.split("/")[-1] == request.headers["parentquestion"]:
+                name = parent_submission[key]
+                if name in names:
+                    continue  # avoid duplicate names
+                names.append(name)
 
-        parent_data = clean_kobo_data(parent_submission)
-        parent_question = request.headers["parentquestion"].lower()
+                kuid = str(uuid.uuid4())[:10].replace("-", "")
+                while kuid in kuids:
+                    kuid = str(uuid.uuid4())[:10].replace(
+                        "-", ""
+                    )  # avoid duplicate kuids
+                kuids.append(kuid)
 
-        if parent_question not in parent_data.keys():
-            continue
-
-        name = parent_data[request.headers["parentquestion"].lower()]
-        if name in names:
-            continue  # avoid duplicate names
-        names.append(name)
-
-        kuid = str(uuid.uuid4())[:10].replace("-", "")
-        while kuid in kuids:
-            kuid = str(uuid.uuid4())[:10].replace("-", "")  # avoid duplicate kuids
-        kuids.append(kuid)
-
-        new_choices_form.append(
-            {
-                "name": name,
-                "$kuid": kuid,
-                "label": [name],
-                "list_name": request.headers["childlist"],
-                "$autovalue": name,
-            }
-        )
+                new_choices_form.append(
+                    {
+                        "name": name,
+                        "$kuid": kuid,
+                        "label": [name],
+                        "list_name": request.headers["childlist"],
+                        "$autovalue": name,
+                    }
+                )
     print("new_choices_form")
     print(new_choices_form)
 
@@ -305,8 +300,8 @@ async def kobo_to_linked_kobo(
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     assetdata = json.loads(response.content)
-    print("get child form")
-    print(assetdata)
+    print("child_choices")
+    print(assetdata["content"]["choices"])
 
     # update child form with new choice list
     assetdata["content"]["choices"] = [
@@ -318,16 +313,12 @@ async def kobo_to_linked_kobo(
     logger.info("update child form with new choice list")
     logger.info(assetdata)
     response = requests.patch(target_url, headers=koboheaders, json=assetdata)
-    print(response.status_code)
-    print(response.content)
 
     # get latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     newassetdata = json.loads(response.content)
     newversionid = newassetdata["version_id"]
-    print("get child form")
-    print(assetdata)
 
     # deploy latest form version id
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/deployment/"
