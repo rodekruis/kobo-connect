@@ -267,6 +267,18 @@ async def kobo_to_linked_kobo(
     print("parent_submissions")
     print(parent_submissions["results"][0])
 
+    # get child form
+    target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
+    response = requests.get(target_url, headers=koboheaders)
+    assetdata = json.loads(response.content)
+    print("child_choices")
+    print(assetdata["content"]["choices"])
+    len_choices = []
+    for choice in assetdata["content"]["choices"]:
+        if choice["list_name"] == request.headers["childlist"]:
+            len_choices.append(len(choice["label"]))
+    len_choices = max(len_choices)
+
     # create new choice list based on parent form submissions
     new_choices_form, kuids, names = [], [], []
     for parent_submission in parent_submissions["results"]:
@@ -288,20 +300,11 @@ async def kobo_to_linked_kobo(
                     {
                         "name": name,
                         "$kuid": kuid,
-                        "label": [name],
+                        "label": [name for i in range(len_choices)],
                         "list_name": request.headers["childlist"],
                         "$autovalue": name,
                     }
                 )
-    print("new_choices_form")
-    print(new_choices_form)
-
-    # get child form
-    target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
-    response = requests.get(target_url, headers=koboheaders)
-    assetdata = json.loads(response.content)
-    print("child_choices")
-    print(assetdata["content"]["choices"])
 
     # update child form with new choice list
     assetdata["content"]["choices"] = [
@@ -310,6 +313,8 @@ async def kobo_to_linked_kobo(
         if choice["list_name"] != request.headers["childlist"]
     ]
     assetdata["content"]["choices"].extend(new_choices_form)
+    print("new_child_choices")
+    print(assetdata["content"]["choices"])
     logger.info("update child form with new choice list")
     logger.info(assetdata)
     response = requests.patch(target_url, headers=koboheaders, json=assetdata)
