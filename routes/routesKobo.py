@@ -264,15 +264,11 @@ async def kobo_to_linked_kobo(
     koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
     response = requests.get(target_url, headers=koboheaders)
     parent_submissions = json.loads(response.content)
-    print("parent_submissions")
-    print(parent_submissions["results"][0])
 
     # get child form
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
     response = requests.get(target_url, headers=koboheaders)
     assetdata = json.loads(response.content)
-    print("child_choices")
-    print(assetdata["content"]["choices"])
     len_choices = []
     for choice in assetdata["content"]["choices"]:
         if choice["list_name"] == request.headers["childlist"]:
@@ -313,8 +309,6 @@ async def kobo_to_linked_kobo(
         if choice["list_name"] != request.headers["childlist"]
     ]
     assetdata["content"]["choices"].extend(new_choices_form)
-    print("new_child_choices")
-    print(assetdata["content"]["choices"])
     logger.info("update child form with new choice list")
     logger.info(assetdata)
     response = requests.patch(target_url, headers=koboheaders, json=assetdata)
