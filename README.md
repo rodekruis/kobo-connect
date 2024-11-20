@@ -32,8 +32,10 @@ https://kobo-connect.azurewebsites.net/kobo-to-linked-kobo
    - Under `Name` insert `parentquestion` and under `Value` the name of the question in the parent form (whose answers will determine the choices in the child form).
    - Under `Name` insert `childlist` and under `Value` the name of the _list_ (not question) in the child form. Example: if the question `type` is `select_one list_name`, the value should be `list_name`.
 
+_That's it_. In the child form, you can leave any value(s) under `childlist`, they will be replaced based on the submissions of the parent form. You do NOT need to connect the parent and child form in KoboToolbox. If you want to link another child form to the parent form, repeat steps 2-4 for the other child form.
+
 > [!IMPORTANT]  
-> The child form will be redeployed each time a submission is made to the parent form, or the Kobo REST service makes a POST request. Make sure to enable "form auto-update" in KoboCollect to ensure that the child form is always up-to-date and ready to be used offline: `settings` > `form management` > `blank form update mode`: `exactly match server`.
+> The child form will be redeployed each time a submission is made to the parent form, or the Kobo REST service makes a POST request. If you plan to collect data offline, make sure to enable "form auto-update" in KoboCollect to ensure that the child form is always up-to-date: `settings` > `form management` > `blank form update mode`: `exactly match server`. If, on the other hand, you plan to collect data online via URL, you don't need to do anything, the form be always up to date. 
 
 
 ## EspoCRM
