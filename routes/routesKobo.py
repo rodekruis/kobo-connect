@@ -249,6 +249,7 @@ async def kobo_to_linked_kobo(
         )
 
     # store the submission uuid and status, to avoid duplicate submissions
+    kobo_data["_uuid"] = kobo_data["_uuid"] + request.headers["childasset"]
     submission = add_submission(kobo_data)
     if submission["status"] == "success":
         logger.info(
