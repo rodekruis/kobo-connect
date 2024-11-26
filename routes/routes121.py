@@ -72,6 +72,8 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = int(kobo_data[kobo_field])
             elif target_field == "scope":
                 payload[target_field] = clean_text(kobo_data[kobo_field])
+            elif target_field == "fspName":
+                payload["programFinancialServiceProviderConfigurationName"] = kobo_data[kobo_field]
             elif kobo_value_url not in attachments.keys():
                 payload[target_field] = kobo_data[kobo_field]
             else:
