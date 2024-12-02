@@ -72,7 +72,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
                 payload[target_field] = int(kobo_data[kobo_field])
             elif target_field == "scope":
                 payload[target_field] = clean_text(kobo_data[kobo_field])
-            elif target_field == "fspName" and "nlrc" not in request.headers["url121"]:
+            elif target_field == "fspName" and "nlrc.121.global" not in request.headers["url121"]:
                 payload["programFinancialServiceProviderConfigurationName"] = kobo_data[kobo_field]
             elif kobo_value_url not in attachments.keys():
                 payload[target_field] = kobo_data[kobo_field]
@@ -90,9 +90,14 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     # Continue with the POST if not in test mode
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
+
+    if 'nlrc.121.global' in request.headers['url121']:
+        url = f"{request.headers['url121']}/api/programs/{programid}/registrations/import"
+    else:
+        url = f"{request.headers['url121']}/api/programs/{programid}/registrations"
     # POST to 121 import endpoint
     import_response = requests.post(
-        f"{request.headers['url121']}/api/programs/{programid}/registrations/import",
+        url,
         headers={"Cookie": f"access_token_general={access_token}"},
         json=[payload],
     )
