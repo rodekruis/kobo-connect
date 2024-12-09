@@ -129,9 +129,9 @@ See below for an example configuration, in which programId was not included as a
 ## Create headers endpoint
 If you need to map a lot of questions, creating the headers manually is cumbersome. The `/create-kobo-headers` endpoint automates this. It expects 4 query parameters:
 - `system`: required, enum (options: 121, espocrm, generic)
-- `kobouser`: your Kobo username
-- `kobopassword`: your Kobo password
-- `koboassetId `: the assed id of the survey (to be found in the url: https://kobonew.ifrc.org/#/forms/`ASSETID`/summary)
+- `koboassetId`: the asset id of the survey (to be found in the url: https://kobonew.ifrc.org/#/forms/`ASSETID`/summary)
+- `kobotoken`: the kobo token of the account the survey is available at (Click on 'account' icon top right > Account Settings > Security > API Key shown is the kobotoken)
+- `hookId `: 
 
 In the body you can pass all the headers you want to create as key value pairs, for example:
  ```json
@@ -141,6 +141,8 @@ In the body you can pass all the headers you want to create as key value pairs, 
   "household_size": "hhSize"
  }
 ```
+
+Tip: When you have the headers (/mapping) for example in an Excel table, you can copy that into ChatGPT and ask it to transform the table to key value pairs. It might save time setting up the body needed.
 
 This endpoint assumes the IFRC Kobo server (`https://kobonew.ifrc.org`)
 
