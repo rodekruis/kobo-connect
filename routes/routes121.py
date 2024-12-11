@@ -91,7 +91,7 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
     access_token = login121(request.headers["url121"], request.headers["username121"], request.headers["password121"])
 
 
-    if 'nlrc.121.global' in request.headers['url121']:
+    if 'nlrc.121.global' in request.headers['url121'] or 'training.121.global' in request.headers['url121']:
         url = f"{request.headers['url121']}/api/programs/{programid}/registrations/import"
     else:
         url = f"{request.headers['url121']}/api/programs/{programid}/registrations"
