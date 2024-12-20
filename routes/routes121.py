@@ -92,7 +92,6 @@ async def kobo_to_121(request: Request, dependencies=Depends(required_headers_12
 
 
     url = f"{request.headers['url121']}/api/programs/{programid}/registrations"
-    
     # POST to 121 import endpoint
     import_response = requests.post(
         url,
