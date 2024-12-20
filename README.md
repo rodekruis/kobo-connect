@@ -56,7 +56,7 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
 6. Add the following headers under `Custom HTTP Headers`:
    - Under `Name` insert `targeturl` and under `Value` the EspoCRM URL (for example, https://espocrminstancex.com).
    - Under `Name` insert `targetkey` and under `Value` the (newly) created API Key (from EspoCRM API User).
-9. For each question, add a header that specifies which Kobo questions corresponds to which entity and field EspoCRM:
+9. For each question, add a header that specifies which Kobo questions corresponds to which entity and field EspoCRM: (tip: this is a manual task. If you want to semi-automatically add headers, read this [section](#create-headers-endpoint) on the creating headers endpoint)
    - The header name (left) must correspond to the Kobo question **name**. (You can check the Kobo question name by going into edit mode of the form, open 'Settings' of the specific question and inspect the `Data Column Name`. Also, the Kobo question names can be found in the 'Data' table with previous submissions. This Kobo question name is different from the [Kobo question label](https://support.kobotoolbox.org/getting_started_xlsform.html#adding-questions) and can not contain spaces or symbols (except the underscore).).
    - The header value (right) must correspond to the EspoCRM entity **name**, followed by a dot (`.`), followed by the specific field **name**. Example: `Contact.name`. (EspoCRM name is different from the EspoCRM label, similar to the difference between Kobo question name and Kobo question label).
 
@@ -141,6 +141,16 @@ In the body you can pass all the headers you want to create as key value pairs, 
   "household_size": "hhSize"
  }
 ```
+Tip: When you have the headers (/mapping) for example in an Excel table, you can copy that into ChatGPT and ask it to transform the table to key value pairs. It might save time setting up the body needed. The steps for this are the following: 
+1. Download the Kobo form in XLS (go to the 'FORM' tab in Kobo -> click the three horizontal dots (settings) -> 'Download XLS'
+2. Open the XLS and copy the values from the 'name' column
+3. Go to ChatGPT (or other LLM) and prompt the following:
+   ````
+   Make key value pairs with the following keys and values in JSON output. For every value add "<Your EspoCRM Entity Name>." in front. These are the headers: <paste the values from the 'name' column from the XLS form> 
+   ````
+4. Copy the output and paste in the ['Request body'](https://kobo-connect.azurewebsites.net/docs#/default/create_kobo_headers_create_kobo_headers_post)
+5. Execute the script and confirm that a new REST service in Kobo has been created with the correct headers.
+
 
 Tip: When you have the headers (/mapping) for example in an Excel table, you can copy that into ChatGPT and ask it to transform the table to key value pairs. It might save time setting up the body needed.
 
