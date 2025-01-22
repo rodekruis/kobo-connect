@@ -267,22 +267,18 @@ async def create_121_program_from_kobo(
 
     CHECKFIELDS = [
         "validation",
-        "phase",
         "location",
         "ngo",
         "language",
         "titlePortal",
-        "description",
         "startDate",
         "endDate",
         "currency",
         "distributionFrequency",
         "distributionDuration",
         "fixedTransferValue",
-        "financialServiceProviders",
         "targetNrRegistrations",
         "tryWhatsAppFirst",
-        "phoneNumberPlaceholder",
         "aboutProgram",
         "fullnameNamingConvention",
         "enableMaxPayments",
@@ -290,7 +286,7 @@ async def create_121_program_from_kobo(
         "preferredLanguage",
         "budget",
         "maxPayments",
-        "fspName",
+        "programFinancialServiceProviderConfigurationName"
     ]
 
     # First check if all setup fields are in the xlsform
@@ -329,7 +325,6 @@ async def create_121_program_from_kobo(
     data = {
         "published": True,
         "validation": lookupdict["validation"].upper() == "TRUE",
-        "phase": lookupdict["phase"],
         "location": lookupdict["location"],
         "ngo": lookupdict["ngo"],
         "titlePortal": {lookupdict["language"]: lookupdict["titlePortal"]},
@@ -342,10 +337,8 @@ async def create_121_program_from_kobo(
         "distributionDuration": int(lookupdict["distributionDuration"]),
         "fixedTransferValue": int(lookupdict["fixedTransferValue"]),
         "paymentAmountMultiplierFormula": "",
-        "financialServiceProviders": [{"fsp": lookupdict["financialServiceProviders"]}],
         "targetNrRegistrations": int(lookupdict["targetNrRegistrations"]),
         "tryWhatsAppFirst": lookupdict["tryWhatsAppFirst"].upper() == "TRUE",
-        "phoneNumberPlaceholder": lookupdict["phoneNumberPlaceholder"],
         "programCustomAttributes": [],
         "programQuestions": [],
         "aboutProgram": {lookupdict["language"]: lookupdict["aboutProgram"]},
@@ -356,7 +349,7 @@ async def create_121_program_from_kobo(
         "enableScope": False,
     }
 
-    koboConnectHeader = ["fspName", "preferredLanguage", "maxPayments"]
+    koboConnectHeader = ["programFinancialServiceProviderConfigurationName", "preferredLanguage", "maxPayments"]
 
     for index, row in survey.iterrows():
         if (
