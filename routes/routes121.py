@@ -351,7 +351,7 @@ async def create_121_program_from_kobo(
         "targetNrRegistrations": int(lookupdict["targetNrRegistrations"]),
         "tryWhatsAppFirst": lookupdict["tryWhatsAppFirst"].upper() == "TRUE",
         "programCustomAttributes": [],
-        "programQuestions": [],
+        "programRegistrationAttributes": [],
         "aboutProgram": {lookupdict["language"]: lookupdict["aboutProgram"]},
         "fullnameNamingConvention": [lookupdict["fullnameNamingConvention"]],
         "languages": [lookupdict["language"]],
