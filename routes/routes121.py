@@ -267,22 +267,18 @@ async def create_121_program_from_kobo(
 
     CHECKFIELDS = [
         "validation",
-        "phase",
         "location",
         "ngo",
         "language",
         "titlePortal",
-        "description",
         "startDate",
         "endDate",
         "currency",
         "distributionFrequency",
         "distributionDuration",
         "fixedTransferValue",
-        "financialServiceProviders",
         "targetNrRegistrations",
         "tryWhatsAppFirst",
-        "phoneNumberPlaceholder",
         "aboutProgram",
         "fullnameNamingConvention",
         "enableMaxPayments",
@@ -290,7 +286,7 @@ async def create_121_program_from_kobo(
         "preferredLanguage",
         "budget",
         "maxPayments",
-        "fspName",
+        "fspName"
     ]
 
     # First check if all setup fields are in the xlsform
@@ -302,7 +298,13 @@ async def create_121_program_from_kobo(
 
     if len(MISSINGFIELDS) != 0:
         print("Missing hidden fields in the template: ", MISSINGFIELDS)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required keys in kobo form: {MISSINGFIELDS}"
+        )
 
+    
+    
     lookupdict = dict(zip(survey["name"], survey["default"]))
     fspquestions = []
 
@@ -321,29 +323,35 @@ async def create_121_program_from_kobo(
         survey["tags"] = False
         dedupedict = dict(zip(survey["name"], survey["tags"]))
 
+    try:
+        start_date = datetime.strptime(lookupdict["startDate"], "%d/%m/%Y").isoformat()
+        end_date = datetime.strptime(lookupdict["endDate"], "%d/%m/%Y").isoformat()
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Date format should be dd/mm/yyyyx"
+        )
+
     # Create the JSON structure
     data = {
         "published": True,
         "validation": lookupdict["validation"].upper() == "TRUE",
-        "phase": lookupdict["phase"],
         "location": lookupdict["location"],
         "ngo": lookupdict["ngo"],
         "titlePortal": {lookupdict["language"]: lookupdict["titlePortal"]},
         "titlePaApp": {lookupdict["language"]: lookupdict["titlePortal"]},
         "description": {"en": ""},
-        "startDate": datetime.strptime(lookupdict["startDate"], "%d/%m/%Y").isoformat(),
-        "endDate": datetime.strptime(lookupdict["endDate"], "%d/%m/%Y").isoformat(),
+        "startDate": start_date,
+        "endDate": end_date,
         "currency": lookupdict["currency"],
         "distributionFrequency": lookupdict["distributionFrequency"],
         "distributionDuration": int(lookupdict["distributionDuration"]),
         "fixedTransferValue": int(lookupdict["fixedTransferValue"]),
         "paymentAmountMultiplierFormula": "",
-        "financialServiceProviders": [{"fsp": lookupdict["financialServiceProviders"]}],
         "targetNrRegistrations": int(lookupdict["targetNrRegistrations"]),
         "tryWhatsAppFirst": lookupdict["tryWhatsAppFirst"].upper() == "TRUE",
-        "phoneNumberPlaceholder": lookupdict["phoneNumberPlaceholder"],
         "programCustomAttributes": [],
-        "programQuestions": [],
+        "programRegistrationAttributes": [],
         "aboutProgram": {lookupdict["language"]: lookupdict["aboutProgram"]},
         "fullnameNamingConvention": [lookupdict["fullnameNamingConvention"]],
         "languages": [lookupdict["language"]],
@@ -365,8 +373,7 @@ async def create_121_program_from_kobo(
                 "name": row["name"],
                 # check if label exists, otherwise use name:
                 "label": {"en": str(row["label"][0]) if not isinstance(row["label"], float) else row["name"]},
-                "answerType": type_mapping[row["type"].split()[0]],
-                "questionType": "standard",
+                "type": type_mapping[row["type"].split()[0]],
                 "options": [],
                 "scoring": {},
                 "persistence": True,
@@ -390,14 +397,13 @@ async def create_121_program_from_kobo(
                         "label": {"en": str(row["label"][0])},
                     }
                     question["options"].append(option)
-            data["programQuestions"].append(question)
+            data["programRegistrationAttributes"].append(question)
         if row["name"] == "phoneNumber":
             koboConnectHeader.append("phoneNumber")
             question = {
                 "name": "phoneNumber",
                 "label": {"en": "Phone Number"},
-                "answerType": "tel",
-                "questionType": "standard",
+                "type": "tel",
                 "options": [],
                 "scoring": {},
                 "persistence": True,
@@ -411,7 +417,7 @@ async def create_121_program_from_kobo(
                 "duplicateCheck": dedupedict[row["name"]],
                 "placeholder": "",
             }
-            data["programQuestions"].append(question)
+            data["programRegistrationAttributes"].append(question)
 
     if test_mode:
         return JSONResponse(status_code=200, content=data)
