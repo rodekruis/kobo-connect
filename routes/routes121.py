@@ -303,6 +303,8 @@ async def create_121_program_from_kobo(
             detail=f"Missing required keys in kobo form: {MISSINGFIELDS}"
         )
 
+    
+    
     lookupdict = dict(zip(survey["name"], survey["default"]))
     fspquestions = []
 
@@ -321,6 +323,15 @@ async def create_121_program_from_kobo(
         survey["tags"] = False
         dedupedict = dict(zip(survey["name"], survey["tags"]))
 
+    try:
+        start_date = datetime.strptime(lookupdict["startDate"], "%d/%m/%Y").isoformat()
+        end_date = datetime.strptime(lookupdict["endDate"], "%d/%m/%Y").isoformat()
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Date format should be dd/mm/yyyyx"
+        )
+
     # Create the JSON structure
     data = {
         "published": True,
@@ -330,8 +341,8 @@ async def create_121_program_from_kobo(
         "titlePortal": {lookupdict["language"]: lookupdict["titlePortal"]},
         "titlePaApp": {lookupdict["language"]: lookupdict["titlePortal"]},
         "description": {"en": ""},
-        "startDate": datetime.strptime(lookupdict["startDate"], "%d/%m/%Y").isoformat(),
-        "endDate": datetime.strptime(lookupdict["endDate"], "%d/%m/%Y").isoformat(),
+        "startDate": start_date,
+        "endDate": end_date,
         "currency": lookupdict["currency"],
         "distributionFrequency": lookupdict["distributionFrequency"],
         "distributionDuration": int(lookupdict["distributionDuration"]),
