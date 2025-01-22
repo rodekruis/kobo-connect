@@ -373,8 +373,7 @@ async def create_121_program_from_kobo(
                 "name": row["name"],
                 # check if label exists, otherwise use name:
                 "label": {"en": str(row["label"][0]) if not isinstance(row["label"], float) else row["name"]},
-                "answerType": type_mapping[row["type"].split()[0]],
-                "questionType": "standard",
+                "type": type_mapping[row["type"].split()[0]],
                 "options": [],
                 "scoring": {},
                 "persistence": True,
@@ -404,8 +403,7 @@ async def create_121_program_from_kobo(
             question = {
                 "name": "phoneNumber",
                 "label": {"en": "Phone Number"},
-                "answerType": "tel",
-                "questionType": "standard",
+                "type": "tel",
                 "options": [],
                 "scoring": {},
                 "persistence": True,
