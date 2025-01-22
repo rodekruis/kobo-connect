@@ -442,44 +442,6 @@
       },
       "duplicateCheck": false,
       "placeholder": ""
-    },
-    {
-      "name": "phase",
-      "label": {
-        "en": "phase"
-      },
-      "type": "text",
-      "options": [],
-      "scoring": {},
-      "persistence": true,
-      "pattern": "",
-      "phases": [],
-      "editableInPortal": true,
-      "export": ["all-people-affected"],
-      "shortLabel": {
-        "en": "phase"
-      },
-      "duplicateCheck": false,
-      "placeholder": ""
-    },
-    {
-      "name": "phoneNumberPlaceholder",
-      "label": {
-        "en": "phoneNumberPlaceholder"
-      },
-      "type": "text",
-      "options": [],
-      "scoring": {},
-      "persistence": true,
-      "pattern": "",
-      "phases": [],
-      "editableInPortal": true,
-      "export": ["all-people-affected"],
-      "shortLabel": {
-        "en": "phoneNumberPlaceholder"
-      },
-      "duplicateCheck": false,
-      "placeholder": ""
     }
   ],
   "aboutProgram": {
