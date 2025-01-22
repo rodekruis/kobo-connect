@@ -1,7 +1,6 @@
 {
   "published": true,
   "validation": true,
-  "phase": "registrationValidation",
   "location": "Netherlands",
   "ngo": "RCRC",
   "titlePortal": {
@@ -20,23 +19,16 @@
   "distributionDuration": 4,
   "fixedTransferValue": 100,
   "paymentAmountMultiplierFormula": "",
-  "financialServiceProviders": [
-    {
-      "fsp": "Commercial-bank-ethiopia"
-    }
-  ],
   "targetNrRegistrations": 10,
   "tryWhatsAppFirst": false,
-  "phoneNumberPlaceholder": "32000000000",
   "programCustomAttributes": [],
-  "programQuestions": [
+  "programRegistrationAttributes": [
     {
       "name": "province",
       "label": {
         "en": "What is the province?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "South-Holland",
@@ -68,8 +60,7 @@
       "label": {
         "en": "What is the city?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Amsterdam",
@@ -113,8 +104,7 @@
       "label": {
         "en": "scope"
       },
-      "answerType": "text",
-      "questionType": "standard",
+      "type": "text",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -133,8 +123,7 @@
       "label": {
         "en": "What is your name?"
       },
-      "answerType": "text",
-      "questionType": "standard",
+      "type": "text",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -153,8 +142,7 @@
       "label": {
         "en": "What is your age?"
       },
-      "answerType": "numeric",
-      "questionType": "standard",
+      "type": "numeric",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -173,8 +161,7 @@
       "label": {
         "en": "What is your sex?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Female",
@@ -212,8 +199,7 @@
       "label": {
         "en": "What is your ID number?"
       },
-      "answerType": "numeric",
-      "questionType": "standard",
+      "type": "numeric",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -232,8 +218,7 @@
       "label": {
         "en": "Phone Number"
       },
-      "answerType": "tel",
-      "questionType": "standard",
+      "type": "tel",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -252,8 +237,7 @@
       "label": {
         "en": "What is the amount of members in your household?"
       },
-      "answerType": "numeric",
-      "questionType": "standard",
+      "type": "numeric",
       "options": [],
       "scoring": {},
       "persistence": true,
@@ -272,8 +256,7 @@
       "label": {
         "en": "Is this a single parent headed household?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -305,8 +288,7 @@
       "label": {
         "en": "Is this an elderly headed household?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -338,8 +320,7 @@
       "label": {
         "en": "Are there people with serious and/or chronic illness in the household?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -371,8 +352,7 @@
       "label": {
         "en": "Are there people with disabilities in the household?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -404,8 +384,7 @@
       "label": {
         "en": "Is the household displaced?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -437,8 +416,7 @@
       "label": {
         "en": "Is the head of household unemployed?"
       },
-      "answerType": "dropdown",
-      "questionType": "standard",
+      "type": "dropdown",
       "options": [
         {
           "option": "Yes",
@@ -461,6 +439,44 @@
       "export": ["all-people-affected"],
       "shortLabel": {
         "en": "selectionUnemployment"
+      },
+      "duplicateCheck": false,
+      "placeholder": ""
+    },
+    {
+      "name": "phase",
+      "label": {
+        "en": "phase"
+      },
+      "type": "text",
+      "options": [],
+      "scoring": {},
+      "persistence": true,
+      "pattern": "",
+      "phases": [],
+      "editableInPortal": true,
+      "export": ["all-people-affected"],
+      "shortLabel": {
+        "en": "phase"
+      },
+      "duplicateCheck": false,
+      "placeholder": ""
+    },
+    {
+      "name": "phoneNumberPlaceholder",
+      "label": {
+        "en": "phoneNumberPlaceholder"
+      },
+      "type": "text",
+      "options": [],
+      "scoring": {},
+      "persistence": true,
+      "pattern": "",
+      "phases": [],
+      "editableInPortal": true,
+      "export": ["all-people-affected"],
+      "shortLabel": {
+        "en": "phoneNumberPlaceholder"
       },
       "duplicateCheck": false,
       "placeholder": ""

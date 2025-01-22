@@ -286,7 +286,7 @@ async def create_121_program_from_kobo(
         "preferredLanguage",
         "budget",
         "maxPayments",
-        "programFinancialServiceProviderConfigurationName"
+        "fspName"
     ]
 
     # First check if all setup fields are in the xlsform
@@ -360,7 +360,7 @@ async def create_121_program_from_kobo(
         "enableScope": False,
     }
 
-    koboConnectHeader = ["programFinancialServiceProviderConfigurationName", "preferredLanguage", "maxPayments"]
+    koboConnectHeader = ["fspName", "preferredLanguage", "maxPayments"]
 
     for index, row in survey.iterrows():
         if (
