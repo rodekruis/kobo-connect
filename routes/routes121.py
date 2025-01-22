@@ -398,7 +398,7 @@ async def create_121_program_from_kobo(
                         "label": {"en": str(row["label"][0])},
                     }
                     question["options"].append(option)
-            data["programQuestions"].append(question)
+            data["programRegistrationAttributes"].append(question)
         if row["name"] == "phoneNumber":
             koboConnectHeader.append("phoneNumber")
             question = {
@@ -419,7 +419,7 @@ async def create_121_program_from_kobo(
                 "duplicateCheck": dedupedict[row["name"]],
                 "placeholder": "",
             }
-            data["programQuestions"].append(question)
+            data["programRegistrationAttributes"].append(question)
 
     if test_mode:
         return JSONResponse(status_code=200, content=data)
