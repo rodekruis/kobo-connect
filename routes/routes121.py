@@ -285,8 +285,7 @@ async def create_121_program_from_kobo(
         "phoneNumber",
         "preferredLanguage",
         "budget",
-        "maxPayments",
-        "fspName"
+        "maxPayments"
     ]
 
     # First check if all setup fields are in the xlsform
@@ -295,6 +294,8 @@ async def create_121_program_from_kobo(
     for checkfield in CHECKFIELDS:
         if checkfield not in FIELDNAMES:
             MISSINGFIELDS.append(checkfield)
+    if "fspName" not in FIELDNAMES and "programFinancialServiceProviderConfigurationName" not in FIELDNAMES:
+        MISSINGFIELDS.append("fspName or programFinancialServiceProviderConfigurationName")
 
     if len(MISSINGFIELDS) != 0:
         print("Missing hidden fields in the template: ", MISSINGFIELDS)
@@ -367,6 +368,7 @@ async def create_121_program_from_kobo(
             row["type"].split()[0] in mappingdf["kobotype"].tolist()
             and row["name"] not in CHECKFIELDS
             and row["name"] not in fspquestions
+            and row["name"] not in ["fspName", "programFinancialServiceProviderConfigurationName"]
         ):
             koboConnectHeader.append(row["name"])
             question = {
