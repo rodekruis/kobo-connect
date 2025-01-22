@@ -404,7 +404,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-people-affected", "included"],
+                "export": ["all-people-affected"],
                 "shortLabel": {
                     "en": row["name"],
                 },

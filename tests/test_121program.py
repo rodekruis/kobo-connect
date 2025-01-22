@@ -25,4 +25,5 @@ def test_121_program():
     assert response.status_code == 200
 
     response_data = response.json()
+    print(response_data)
     assert response_data == program121
