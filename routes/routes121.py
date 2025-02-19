@@ -239,10 +239,11 @@ async def create_offline_validation_form(
     request: Request, unique_identifier: str, dependencies=Depends(required_headers_kobo)
 ):
     koboUrl = "https://kobo.ifrc.org/api/v2/assets/"
-    koboGetUrl = koboUrl+request.headers['koboasset']
+    koboGetUrl = koboUrl + request.headers['koboasset']
     koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
     data_request = requests.get(f"{koboGetUrl}/?format=json", headers=koboheaders)
     if data_request.status_code >= 400:
+        logger.error(f"Failed to get Kobo form: {data_request.content.decode('utf-8')}")
         raise HTTPException(
             status_code=data_request.status_code,
             detail=data_request.content.decode("utf-8"),
@@ -253,13 +254,13 @@ async def create_offline_validation_form(
 
     # Reorder survey to have the target question first
     question_types = {
-    "integer", "decimal", "range", "text", "select_one", "select_multiple",
-    "select_one_from_file", "select_multiple_from_file", "rank", "note",
-    "date", "time", "dateTime", "barcode", "calculate", "acknowledge", 
-    "hidden", "xml-external"
+        "integer", "decimal", "range", "text", "select_one", "select_multiple",
+        "select_one_from_file", "select_multiple_from_file", "rank", "note",
+        "date", "time", "dateTime", "barcode", "calculate", "acknowledge", 
+        "hidden", "xml-external"
     }
     group_types = {"begin_group", "end_group"}
-    no_pulldata_types = {"geopoint", "geotrace", "geoshape", "image","audio", "background-audio", "video", "file"}
+    no_pulldata_types = {"geopoint", "geotrace", "geoshape", "image", "audio", "background-audio", "video", "file"}
 
     survey = data["content"]["survey"]
 
@@ -283,7 +284,7 @@ async def create_offline_validation_form(
         elif question.get("type") in group_types:
             known_type_questions.append(question)
         elif question.get("type") in no_pulldata_types:
-            print("not included question: ", question.get("name"))
+            logger.info(f"Not included question: {question.get('name')}")
         else:
             unknown_type_questions.append(question)
 
@@ -302,15 +303,16 @@ async def create_offline_validation_form(
     )
 
     # create new form
-    post_validation_form = requests.post(koboUrl+"?format=json", headers=koboheaders, json=data)
+    post_validation_form = requests.post(koboUrl + "?format=json", headers=koboheaders, json=data)
     if post_validation_form.status_code >= 400:
+        logger.error(f"Failed to create new Kobo form: {post_validation_form.content.decode('utf-8')}")
         raise HTTPException(
             status_code=post_validation_form.status_code,
             detail=post_validation_form.content.decode("utf-8"),
         )
     
     formId = post_validation_form.json()["uid"]
-    print(formId)
+    logger.info(f"Created new Kobo form with ID: {formId}")
 
     # Deploy the Kobo form
     deploy_url = f"{koboUrl}{formId}/deployment/"
@@ -320,6 +322,7 @@ async def create_offline_validation_form(
         deploy_url, headers=koboheaders, json=deploy_payload
     )
     if deploy_response.status_code >= 400:
+        logger.error(f"Failed to deploy Kobo form: {deploy_response.content.decode('utf-8')}")
         raise HTTPException(
             status_code=deploy_response.status_code,
             detail=deploy_response.content.decode("utf-8"),
@@ -347,7 +350,13 @@ async def create_offline_validation_form(
         kobo_response = requests.post(f"{koboUrl}{formId}/hooks/", headers=koboheaders, json=restServicePayload)
     
     if kobo_response.status_code == 200 or 201:
+        logger.info("Validation form created and deployed successfully")
         return JSONResponse({"message": "Validation form created successfully"})
+    else:
+        logger.error(f"Failed to create Kobo Connect rest service: {kobo_response.content.decode('utf-8')}")
+        return JSONResponse(
+            content={"message": "Failed"}, status_code=kobo_response.status_code
+        )
 
 ###########
 @router.get("/121-program")
