@@ -255,9 +255,8 @@ async def create_offline_validation_form(
     question_types = {
     "integer", "decimal", "range", "text", "select_one", "select_multiple",
     "select_one_from_file", "select_multiple_from_file", "rank", "note",
-    "geopoint", "geotrace", "geoshape", "date", "time", "dateTime", "image",
-    "audio", "background-audio", "video", "file", "barcode", "calculate",
-    "acknowledge", "hidden", "xml-external"
+    "date", "time", "dateTime", "barcode", "calculate", "acknowledge", 
+    "hidden", "xml-external"
     }
     group_types = {"begin_group", "end_group"}
     no_pulldata_types = {"geopoint", "geotrace", "geoshape", "image","audio", "background-audio", "video", "file"}
@@ -277,13 +276,14 @@ async def create_offline_validation_form(
             question["$xpath"] = unique_identifier
             target_question = question
         elif question.get("type") in question_types:
-            if question.get("type") not in no_pulldata_types:
-                calculation = f"pulldata('ValidationDataFrom121','{question.get('name')}','{unique_identifier}',${{{unique_identifier}}})"
-                question["calculation"] = calculation
+            calculation = f"pulldata('ValidationDataFrom121','{question.get('name')}','{unique_identifier}',${{{unique_identifier}}})"
+            question["calculation"] = calculation
             known_type_questions.append(question)
             customKoboRestHeaders[question.get("name")] = question.get("name")
         elif question.get("type") in group_types:
             known_type_questions.append(question)
+        elif question.get("type") in no_pulldata_types:
+            print("not included question: ", question.get("name"))
         else:
             unknown_type_questions.append(question)
 
