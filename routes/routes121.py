@@ -238,6 +238,12 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
 async def create_offline_validation_form(
     request: Request, unique_identifier: str, dependencies=Depends(required_headers_kobo)
 ):
+    """
+    Create and deploy an offline validation form on KoboToolbox.
+    This endpoint creates a new KoboToolbox form based on an existing form,
+    modifies it for offline validation, and deploys it. It also sets up a 
+    Kobo Connect REST service for the new form.
+    """
     koboUrl = "https://kobo.ifrc.org/api/v2/assets/"
     koboGetUrl = koboUrl + request.headers['koboasset']
     koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
