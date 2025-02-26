@@ -513,7 +513,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-people-affected"],
+                "export": ["all-registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
@@ -543,7 +543,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-people-affected"],
+                "export": ["all-registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
