@@ -48,7 +48,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "province"
       },
@@ -92,7 +92,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "city"
       },
@@ -111,7 +111,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "scope"
       },
@@ -130,7 +130,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "fullName"
       },
@@ -149,7 +149,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "age"
       },
@@ -187,7 +187,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "sex"
       },
@@ -206,7 +206,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "idNumber"
       },
@@ -225,7 +225,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "phoneNumber"
       },
@@ -244,7 +244,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "hhSize"
       },
@@ -276,7 +276,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionSingleHeaded"
       },
@@ -308,7 +308,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionElderlyHeaded"
       },
@@ -340,7 +340,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionIllness"
       },
@@ -372,7 +372,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionDisability"
       },
@@ -404,7 +404,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionDisplaced"
       },
@@ -436,7 +436,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "selectionUnemployment"
       },
@@ -455,7 +455,7 @@
       "pattern": "",
       "phases": [],
       "editableInPortal": true,
-      "export": ["all-people-affected"],
+      "export": ["all-registrations"],
       "shortLabel": {
         "en": "phoneNumberPlaceholder"
       },
