@@ -19,6 +19,7 @@ from utils.utilsKobo import (
     required_headers_linked_kobo,
 )
 from utils.logger import logger
+import time
 
 router = APIRouter()
 
@@ -28,12 +29,17 @@ async def prepare_kobo_validation(
     request: Request,
     programId: int,
     kobousername: str,
+    delay: int = 0,
     dependencies=Depends(required_headers_121_kobo),
 ):
     """
     Prepare Kobo validation by fetching data from 121 platform,
     converting it to CSV, and uploading to Kobo.
     """
+
+    # Delay execution if delay is set
+    if delay > 0:
+        time.sleep(delay)
 
     access_token = login121(
         request.headers["url121"],

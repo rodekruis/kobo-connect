@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 import requests
 import re
 import os
+import json
 import csv
 import pandas as pd
 from datetime import datetime, timedelta
@@ -231,6 +232,138 @@ async def kobo_update_121(request: Request, dependencies=Depends(required_header
         status_code=status_response.status_code, content=update_response_message
     )
 
+########################################################################################################################
+
+@router.post("/create-offline-validation-form")
+async def create_offline_validation_form(
+    request: Request, unique_identifier: str, dependencies=Depends(required_headers_kobo)
+):
+    """
+    Create and deploy an offline validation form on KoboToolbox.
+    This endpoint creates a new KoboToolbox form based on an existing form,
+    modifies it for offline validation, and deploys it. It also sets up a 
+    Kobo Connect REST service for the new form.
+    """
+    koboUrl = "https://kobo.ifrc.org/api/v2/assets/"
+    koboGetUrl = koboUrl + request.headers['koboasset']
+    koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
+    data_request = requests.get(f"{koboGetUrl}/?format=json", headers=koboheaders)
+    if data_request.status_code >= 400:
+        logger.error(f"Failed to get Kobo form: {data_request.content.decode('utf-8')}")
+        raise HTTPException(
+            status_code=data_request.status_code,
+            detail=data_request.content.decode("utf-8"),
+        )
+    data = data_request.json()
+
+    data["name"] = data["name"] + " - Offline Validation"
+
+    # Reorder survey to have the target question first
+    question_types = {
+        "integer", "decimal", "range", "text", "select_one", "select_multiple",
+        "select_one_from_file", "select_multiple_from_file", "rank", "note",
+        "date", "time", "dateTime", "barcode", "calculate", "acknowledge", 
+        "hidden", "xml-external"
+    }
+    group_types = {"begin_group", "end_group"}
+    no_pulldata_types = {"geopoint", "geotrace", "geoshape", "image", "audio", "background-audio", "video", "file"}
+
+    survey = data["content"]["survey"]
+
+    known_type_questions = []
+    unknown_type_questions = []
+    target_question = None
+    customKoboRestHeaders = {}
+
+    for question in survey:
+        if question.get("name") == unique_identifier:
+            if "relevant" in question:
+                del question["relevant"]
+            question["required"] = True
+            question["$xpath"] = unique_identifier
+            target_question = question
+        elif question.get("type") in question_types:
+            calculation = f"pulldata('ValidationDataFrom121','{question.get('name')}','{unique_identifier}',${{{unique_identifier}}})"
+            question["calculation"] = calculation
+            known_type_questions.append(question)
+            customKoboRestHeaders[question.get("name")] = question.get("name")
+        elif question.get("type") in group_types:
+            known_type_questions.append(question)
+        elif question.get("type") in no_pulldata_types:
+            logger.info(f"Not included question: {question.get('name')}")
+        else:
+            unknown_type_questions.append(question)
+
+    if target_question:
+        # Reconstruct survey: unknown type questions first, then target question, then known type questions
+        data["content"]["survey"] = unknown_type_questions + [target_question] + known_type_questions
+
+    data["content"]["survey"].append(
+        {
+            "name": "referenceId",
+            "type": "hidden",
+            "$xpath": "referenceId",
+            "$autoname": "referenceId",
+            "calculation": f"pulldata('ValidationDataFrom121','referenceId','{unique_identifier}',${{{unique_identifier}}})"
+        }
+    )
+
+    # create new form
+    post_validation_form = requests.post(koboUrl + "?format=json", headers=koboheaders, json=data)
+    if post_validation_form.status_code >= 400:
+        logger.error(f"Failed to create new Kobo form: {post_validation_form.content.decode('utf-8')}")
+        raise HTTPException(
+            status_code=post_validation_form.status_code,
+            detail=post_validation_form.content.decode("utf-8"),
+        )
+    
+    formId = post_validation_form.json()["uid"]
+    logger.info(f"Created new Kobo form with ID: {formId}")
+
+    # Deploy the Kobo form
+    deploy_url = f"{koboUrl}{formId}/deployment/"
+    deploy_payload = {"active": True}
+
+    deploy_response = requests.post(
+        deploy_url, headers=koboheaders, json=deploy_payload
+    )
+    if deploy_response.status_code >= 400:
+        logger.error(f"Failed to deploy Kobo form: {deploy_response.content.decode('utf-8')}")
+        raise HTTPException(
+            status_code=deploy_response.status_code,
+            detail=deploy_response.content.decode("utf-8"),
+        )
+
+    if 200 <= deploy_response.status_code <= 299:
+        # Create kobo-connect rest service
+        restServicePayload = {
+            "name": "Kobo Connect (kobo-update-121)",
+            "endpoint": "https://kobo-connect.azurewebsites.net/kobo-update-121",
+            "active": True,
+            "email_notification": True,
+            "export_type": "json",
+            "settings": {"custom_headers": {}},
+        }
+        
+        customKoboRestHeaders["referenceId"] = "referenceId"
+        customKoboRestHeaders["url121"] = "https://placeholder.121.global"
+        customKoboRestHeaders["username121"] = "userplaceholder"
+        customKoboRestHeaders["password121"] = "passwordplaceholder"
+        customKoboRestHeaders["programid"] = "programidplaceholder(integer)"
+
+        restServicePayload["settings"]["custom_headers"] = customKoboRestHeaders
+        
+        kobo_response = requests.post(f"{koboUrl}{formId}/hooks/", headers=koboheaders, json=restServicePayload)
+    
+    if kobo_response.status_code == 200 or 201:
+        logger.info("Validation form created and deployed successfully")
+        return JSONResponse({"message": "Validation form created successfully"})
+    else:
+        logger.error(f"Failed to create Kobo Connect rest service: {kobo_response.content.decode('utf-8')}")
+        return JSONResponse(
+            content={"message": "Failed"}, status_code=kobo_response.status_code
+        )
+
 ###########
 @router.get("/121-program")
 async def create_121_program_from_kobo(
@@ -380,7 +513,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-people-affected"],
+                "export": ["all-registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
@@ -410,7 +543,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-people-affected"],
+                "export": ["all-registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
