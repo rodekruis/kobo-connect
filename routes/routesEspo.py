@@ -38,6 +38,8 @@ async def kobo_to_espocrm(
 
     # store the submission uuid and status, to avoid duplicate submissions
     submission = add_submission(kobo_data)
+    logger.info("Succesfully created/retrieved submission from Cosmos DB",  extra=extra_logs)
+
     if submission["status"] == "success":
         logger.info(
             "Submission has already been successfully processed", extra=extra_logs
@@ -60,7 +62,10 @@ async def kobo_to_espocrm(
     if "koboasset" in request.headers.keys():
         koboasset = request.headers["koboasset"]
     client = EspoAPI(request.headers["targeturl"], request.headers["targetkey"])
+
+    logger.info("Getting attachment urls", extra=extra_logs)
     attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
+    logger.info(f"Succesfully retrieved urls of {len(attachments)} attachments", extra=extra_logs)
 
     # check if records need to be updated
     update_record_payload = {}
@@ -179,7 +184,15 @@ async def kobo_to_espocrm(
                 update_submission_status(submission, "failed", error_message)
 
             # encode attachment in base64
+            logger.info(f"Getting attachment of field: {kobo_field}",  extra=extra_logs)
             file = get_kobo_attachment(file_url, kobotoken)
+            
+            if file:
+                logger.info(f"Successfully retrieved attachment of field: {kobo_field}",  extra=extra_logs)
+            else:
+                logger.warning(f"Attachment retrieval failed for field: {kobo_field}",  extra=extra_logs)
+
+
             file_b64 = base64.b64encode(file).decode("utf8")
             # upload attachment to target
             attachment_payload = {
