@@ -49,7 +49,7 @@ async def prepare_kobo_validation(
 
     # Fetch data from 121 platform
     response = requests.get(
-        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-people-affected",
+        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-registrations",
         headers={"Cookie": f"access_token_general={access_token}"},
     )
     if response.status_code != 200:
