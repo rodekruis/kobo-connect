@@ -21,7 +21,7 @@ Example: the parent form could be a beneficiary registration form, and the child
 
 1. Define which question in the parent Kobo form needs to be saved in which multiple-choice question in the child form.
 2. [Register a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html) in the parent form and give it a descriptive name, e.g. `update child form`.
-3. Insert as `Endpoint URL`
+3. Insert as `Endpoint URL`:
 ```
 https://kobo-connect.azurewebsites.net/kobo-to-linked-kobo
 ```
