@@ -105,8 +105,8 @@ async def prepare_kobo_validation(
 
     # Ensure we have data to process
     if data and "data" in data and len(data["data"]) > 0:
-        # Get the keys (column names) from the first row
-        fieldnames = list(data["data"][0].keys())
+        # Get the keys (column names) from the last row
+        fieldnames = list(data["data"][-1].keys())
 
         # Write header
         writer.writerow(fieldnames)
