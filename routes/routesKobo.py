@@ -58,7 +58,46 @@ async def prepare_kobo_validation(
             detail="Failed to fetch data from 121 platform",
         )
 
-    data = response.json()
+    # Extract the data from the JSON response
+    json_response = response.json()
+    data = json_response.get("data", [])  # Access the 'data' array from the response
+
+    project = requests.get(
+        f"{request.headers['url121']}/api/programs/{programId}?formatProgramReturnDto=true",
+        headers={"Cookie": f"access_token_general={access_token}"},
+    )
+
+    if project.status_code != 200:
+        raise HTTPException(
+            status_code=project.status_code,
+            detail="Failed to fetch project data from 121 platform",
+        )
+
+    projectdata = project.json()
+
+    # Build a mapping of dropdown fields: field_name → {label → option}
+    dropdown_mappings = {}
+    for attr in projectdata.get("programRegistrationAttributes", []):
+        if attr.get("type") == "dropdown":
+            field_name = attr["name"]
+            options = attr.get("options", [])
+            label_to_option = {
+                option["label"]["en"]: option["option"]
+                for option in options
+                if "label" in option and "en" in option["label"]
+            }
+            dropdown_mappings[field_name] = label_to_option
+
+    # Replace dropdown labels with their option values in all relevant fields
+    for reg in data:
+        for field, label_to_option in dropdown_mappings.items():
+            label = reg.get(field)
+            if label and label in label_to_option:
+                reg[field] = label_to_option[label]
+
+    # Update the original response with the modified data
+    json_response["data"] = data
+    data = json_response
 
     # Convert JSON to CSV
     output = io.StringIO()
