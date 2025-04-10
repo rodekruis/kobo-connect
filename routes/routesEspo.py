@@ -34,6 +34,9 @@ async def kobo_to_espocrm(
             status_code=422,
             content={"detail": "Not a valid Kobo submission"},
         )
+    
+    logger.info("Succesfully received submission from Kobo",  extra=extra_logs)
+
     target_response = {}
 
     # store the submission uuid and status, to avoid duplicate submissions
