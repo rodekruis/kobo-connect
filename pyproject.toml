@@ -10,7 +10,7 @@ repository = "https://github.com/rodekruis/kobo-connect"
 packages = [{include = "clients"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.12"
 aiohttp = "*"
 aiosignal = "*"
 async-timeout = "*"
