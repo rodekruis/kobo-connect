@@ -15,7 +15,6 @@ from utils.utilsKobo import (
     get_attachment_dict,
     get_kobo_attachment,
     update_submission_status,
-    required_headers_121_kobo,
     required_headers_linked_kobo,
 )
 from utils.logger import logger
@@ -24,190 +23,13 @@ import time
 router = APIRouter()
 
 
-@router.post("/update-kobo-csv")
-async def prepare_kobo_validation(
-    request: Request,
-    programId: int,
-    kobousername: str,
-    delay: int = 0,
-    dependencies=Depends(required_headers_121_kobo),
-):
-    """
-    Prepare Kobo validation by fetching data from 121 platform,
-    converting it to CSV, and uploading to Kobo.
-    """
-
-    # Delay execution if delay is set
-    if delay > 0:
-        time.sleep(delay)
-
-    access_token = login121(
-        request.headers["url121"],
-        request.headers["username121"],
-        request.headers["password121"],
-    )
-
-    # Fetch data from 121 platform
-    response = requests.get(
-        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-registrations",
-        headers={"Cookie": f"access_token_general={access_token}"},
-    )
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail="Failed to fetch data from 121 platform",
-        )
-
-    # Extract the data from the JSON response
-    json_response = response.json()
-    data = json_response.get("data", [])  # Access the 'data' array from the response
-
-    project = requests.get(
-        f"{request.headers['url121']}/api/programs/{programId}?formatProgramReturnDto=true",
-        headers={"Cookie": f"access_token_general={access_token}"},
-    )
-
-    if project.status_code != 200:
-        raise HTTPException(
-            status_code=project.status_code,
-            detail="Failed to fetch project data from 121 platform",
-        )
-
-    projectdata = project.json()
-
-    # Build a mapping of dropdown fields: field_name → {label → option}
-    dropdown_mappings = {}
-    for attr in projectdata.get("programRegistrationAttributes", []):
-        if attr.get("type") == "dropdown":
-            field_name = attr["name"]
-            options = attr.get("options", [])
-            label_to_option = {
-                option["label"]["en"]: option["option"]
-                for option in options
-                if "label" in option and "en" in option["label"]
-            }
-            dropdown_mappings[field_name] = label_to_option
-
-    # Replace dropdown labels with their option values in all relevant fields
-    for reg in data:
-        for field, label_to_option in dropdown_mappings.items():
-            label = reg.get(field)
-            if label and label in label_to_option:
-                reg[field] = label_to_option[label]
-
-    # Update the original response with the modified data
-    json_response["data"] = data
-    data = json_response
-
-    # Convert JSON to CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-
-    # Ensure we have data to process
-    if data and "data" in data and len(data["data"]) > 0:
-        # Get the keys (column names) from the last row
-        fieldnames = list(data["data"][-1].keys())
-
-        # Write header
-        writer.writerow(fieldnames)
-
-        # Write rows
-        for row in data["data"]:
-            # Create a list of values in the same order as fieldnames
-            row_data = [row.get(field, "") for field in fieldnames]
-            writer.writerow(row_data)
-
-    csv_content = output.getvalue().encode("utf-8")
-
-    # Prepare the payload for Kobo
-    base64_encoded_csv = base64.b64encode(csv_content).decode("utf-8")
-    metadata = json.dumps({"filename": "ValidationDataFrom121.csv"})
-
-    payload = {
-        "description": "default",
-        "file_type": "form_media",
-        "metadata": metadata,
-        "base64Encoded": f"data:text/csv;base64,{base64_encoded_csv}",
-    }
-
-    # Kobo headers
-    headers = {
-        "Authorization": f"Token {request.headers['kobotoken']}",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-    # If exists, remove existing ValidationDataFrom121.csv
-    media_response = requests.get(
-        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
-        headers=headers,
-    )
-    if media_response.status_code != 200:
-        raise HTTPException(
-            status_code=response.status_code, detail="Failed to fetch media from kobo"
-        )
-
-    media = media_response.json()
-
-    # Check if ValidationDataFrom121.csv exists and get its uid
-    existing_file_uid = None
-    for file in media.get("results", []):
-        if file.get("metadata", {}).get("filename") == "ValidationDataFrom121.csv":
-            existing_file_uid = file.get("uid")
-            break
-
-    # If the file exists, delete it
-    if existing_file_uid:
-        delete_response = requests.delete(
-            f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/{existing_file_uid}/",
-            headers={"Authorization": f"Token {request.headers['kobotoken']}"},
-        )
-        if delete_response.status_code != 204:
-            raise HTTPException(
-                status_code=delete_response.status_code,
-                detail="Failed to delete existing file from Kobo",
-            )
-
-    upload_response = requests.post(
-        f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/files/",
-        headers=headers,
-        data=payload,
-    )
-
-    if upload_response.status_code != 201:
-        raise HTTPException(
-            status_code=upload_response.status_code,
-            detail="Failed to upload file to Kobo",
-        )
-
-    # Redeploy the Kobo form
-    redeploy_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['koboasset']}/deployment/"
-    redeploy_payload = {"active": True}
-
-    redeploy_response = requests.patch(
-        redeploy_url, headers=headers, json=redeploy_payload
-    )
-
-    if redeploy_response.status_code != 200:
-        raise HTTPException(
-            status_code=redeploy_response.status_code,
-            detail="Failed to redeploy Kobo form",
-        )
-
-    return {
-        "message": "Validation data prepared and uploaded successfully",
-        "kobo_response": upload_response.json(),
-    }
-
-
-###############
-
-
 class system(str, Enum):
     system_generic = "generic"
     system_espo = "espocrm"
     system_121 = "121"
 
 
-@router.post("/create-kobo-headers")
+@router.post("/create-kobo-headers", tags=["Kobo"])
 async def create_kobo_headers(
     json_data: dict,
     system: system,
@@ -275,7 +97,7 @@ async def create_kobo_headers(
         )
 
 
-@router.post("/kobo-to-linked-kobo")
+@router.post("/kobo-to-linked-kobo", tags=["Kobo"])
 async def kobo_to_linked_kobo(
     request: Request, dependencies=Depends(required_headers_linked_kobo)
 ):

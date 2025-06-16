@@ -17,7 +17,7 @@ import base64
 router = APIRouter()
 
 
-@router.post("/kobo-to-espocrm")
+@router.post("/kobo-to-espocrm", tags=["EspoCRM"])
 async def kobo_to_espocrm(
     request: Request, dependencies=Depends(required_headers_espocrm)
 ):
@@ -34,14 +34,16 @@ async def kobo_to_espocrm(
             status_code=422,
             content={"detail": "Not a valid Kobo submission"},
         )
-    
-    logger.info("Succesfully received submission from Kobo",  extra=extra_logs)
+
+    logger.info("Succesfully received submission from Kobo", extra=extra_logs)
 
     target_response = {}
 
     # store the submission uuid and status, to avoid duplicate submissions
     submission = add_submission(kobo_data)
-    logger.info("Succesfully created/retrieved submission from Cosmos DB",  extra=extra_logs)
+    logger.info(
+        "Succesfully created/retrieved submission from Cosmos DB", extra=extra_logs
+    )
 
     if submission["status"] == "success":
         logger.info(
@@ -68,7 +70,10 @@ async def kobo_to_espocrm(
 
     logger.info("Getting attachment urls", extra=extra_logs)
     attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
-    logger.info(f"Succesfully retrieved urls of {len(attachments)} attachments", extra=extra_logs)
+    logger.info(
+        f"Succesfully retrieved urls of {len(attachments)} attachments",
+        extra=extra_logs,
+    )
 
     # check if records need to be updated
     update_record_payload = {}
@@ -187,14 +192,19 @@ async def kobo_to_espocrm(
                 update_submission_status(submission, "failed", error_message)
 
             # encode attachment in base64
-            logger.info(f"Getting attachment of field: {kobo_field}",  extra=extra_logs)
+            logger.info(f"Getting attachment of field: {kobo_field}", extra=extra_logs)
             file = get_kobo_attachment(file_url, kobotoken)
-            
-            if file:
-                logger.info(f"Successfully retrieved attachment of field: {kobo_field}",  extra=extra_logs)
-            else:
-                logger.warning(f"Attachment retrieval failed for field: {kobo_field}",  extra=extra_logs)
 
+            if file:
+                logger.info(
+                    f"Successfully retrieved attachment of field: {kobo_field}",
+                    extra=extra_logs,
+                )
+            else:
+                logger.warning(
+                    f"Attachment retrieval failed for field: {kobo_field}",
+                    extra=extra_logs,
+                )
 
             file_b64 = base64.b64encode(file).decode("utf8")
             # upload attachment to target
