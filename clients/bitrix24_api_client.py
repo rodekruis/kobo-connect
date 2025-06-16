@@ -10,12 +10,14 @@ class Bitrix24:
     def __init__(self, url):
         if url.endswith("/"):
             url = url[:-1]
-        self.url = url
+        self.url = url + "/rest/1/"
 
-    def request(self, method, bitrix24_url, submission, params=None, logs=None):
+    def request(self, method, endpoint, submission, params=None, logs=None):
         """Make a request to Bitrix24. If the request fails, update submission status in CosmosDB."""
 
-        response = requests.request(method=method, url=bitrix24_url, params=params)
+        response = requests.request(
+            method=method, url=self.url + endpoint, params=params
+        )
 
         if response.status_code != 200:
             logger.error(
