@@ -1,0 +1,14 @@
+{
+    "user-agent": "KoboToolbox external service #heBzZDkzTcQkjsictQqRjT",
+    "content-length": "665",
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate",
+    "baggage": "sentry-trace_id=9ef76a1cc964434ba685160d34ff1396,sentry-environment=production,sentry-public_key=215a75dbe7a840059232dea807b227c9,sentry-transaction=/%7Busername%7D/submission,sentry-sample_rate=0.01,sentry-sampled=false",
+    "content-type": "application/json",
+    "due_date": "CTask.dueDate",
+    "sentry-trace": "9ef76a1cc964434ba685160d34ff1396-b2babe4e1339e6cc-0",
+    "task_name": "CTask.taskName",
+    "x-forwarded-for": "3.79.235.215",
+    "x-forwarded-host": "kobo-connect.free.beeceptor.com",
+    "x-forwarded-proto": "https"
+}
