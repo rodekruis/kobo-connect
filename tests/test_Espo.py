@@ -2,6 +2,7 @@ import sys
 import os
 import json
 from fastapi.testclient import TestClient
+from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -16,6 +17,7 @@ with open(
     os.path.join(os.path.dirname(__file__), "kobo_headers_espo.json"), "r"
 ) as file:
     kobo_headers = json.load(file)
+load_dotenv()
 kobo_headers["targeturl"] = os.environ["TEST_ESPOCRM_URL"]
 kobo_headers["targetkey"] = os.environ["TEST_ESPOCRM_KEY"]
 
