@@ -34,6 +34,8 @@ jobs:
         echo "PORT=${{ secrets.PORT }}" >> $GITHUB_ENV
         echo "TEST_KOBO_ASSETID=${{ secrets.TEST_KOBO_ASSETID }}" >> $GITHUB_ENV
         echo "TEST_KOBO_TOKEN=${{ secrets.TEST_KOBO_TOKEN }}" >> $GITHUB_ENV
+        echo "TEST_ESPOCRM_URL=${{ secrets.TEST_ESPOCRM_URL }}" >> $GITHUB_ENV
+        echo "TEST_ESPOCRM_KEY=${{ secrets.TEST_ESPOCRM_KEY }}" >> $GITHUB_ENV
     - name: Test with pytest
       run: |
         pytest
