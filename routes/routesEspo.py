@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
+from utils.cosmos import add_submission, update_submission_status
 from utils.utilsKobo import (
-    add_submission,
     clean_kobo_data,
     get_attachment_dict,
     get_kobo_attachment,
-    update_submission_status,
 )
 from utils.utilsEspo import espo_request, required_headers_espocrm
 from utils.logger import logger
