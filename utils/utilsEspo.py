@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Header
 from utils.logger import logger
-from utils.utilsKobo import update_submission_status
+from utils.cosmos import update_submission_status
 
 
 def espo_request(submission, espo_client, method, entity, params=None, logs=None):

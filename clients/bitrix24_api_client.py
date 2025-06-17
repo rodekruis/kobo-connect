@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from utils.logger import logger
-from utils.utilsKobo import update_submission_status
+from utils.cosmos import update_submission_status
 import requests
 
 
