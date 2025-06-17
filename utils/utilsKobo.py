@@ -1,8 +1,6 @@
 import requests
 import time
-from fastapi import HTTPException, Header
-from azure.cosmos.exceptions import CosmosResourceExistsError
-from utils.cosmos import cosmos_container_client
+from fastapi import Header
 import sys
 
 
@@ -18,36 +16,6 @@ def required_headers_121_kobo(
     koboasset: str = Header(),
 ):
     return url121, username121, password121, kobotoken, koboasset
-
-
-def add_submission(kobo_data):
-    """Add submission to CosmosDB. If submission already exists and status is pending, raise HTTPException."""
-    submission = {
-        "id": str(kobo_data["_uuid"]),
-        "uuid": str(kobo_data["formhub/uuid"]),
-        "status": "pending",
-    }
-    try:
-        submission = cosmos_container_client.create_item(body=submission)
-    except CosmosResourceExistsError:
-        submission = cosmos_container_client.read_item(
-            item=str(kobo_data["_uuid"]),
-            partition_key=str(kobo_data["formhub/uuid"]),
-        )
-        if submission["status"] == "pending":
-            raise HTTPException(
-                status_code=400, detail="Submission is still being processed."
-            )
-    return submission
-
-
-def update_submission_status(submission, status, error_message=None):
-    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
-    submission["status"] = status
-    submission["error_message"] = error_message
-    cosmos_container_client.replace_item(item=str(submission["id"]), body=submission)
-    if status == "failed":
-        raise HTTPException(status_code=400, detail=error_message)
 
 
 def get_kobo_attachment(URL, kobo_token):

@@ -9,12 +9,11 @@ import uuid
 import json
 from enum import Enum
 from utils.utils121 import login121
+from utils.cosmos import add_submission, update_submission_status
 from utils.utilsKobo import (
-    add_submission,
     clean_kobo_data,
     get_attachment_dict,
     get_kobo_attachment,
-    update_submission_status,
     required_headers_linked_kobo,
 )
 from utils.logger import logger
