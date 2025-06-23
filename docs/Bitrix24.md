@@ -24,3 +24,6 @@ https://kobo-connect.azurewebsites.net/kobo-to-bitrix24
 
 > [!IMPORTANT]  
 > Sending **attachments** (e.g. images) to Bitrix24 is currently **not** supported.
+
+<img src="https://github.com/user-attachments/assets/9c8ea559-0d79-41f6-9f47-eeca24c26438" width="500">
+
