@@ -15,10 +15,8 @@ import base64
 router = APIRouter()
 
 
-def required_headers_bitrix24(
-    targeturl: str = Header(), koboasset: str = Header(), kobotoken: str = Header()
-):
-    return targeturl, koboasset, kobotoken
+def required_headers_bitrix24(targeturl: str = Header()):
+    return targeturl
 
 
 @router.post("/kobo-to-bitrix24", tags=["Bitrix24"])
@@ -48,12 +46,12 @@ async def kobo_to_bitrix24(
         )
 
     # get kobo attachments
-    kobotoken = request.headers["kobotoken"]
-    koboasset = request.headers["koboasset"]
-    attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
+    # kobotoken = request.headers["kobotoken"]
+    # koboasset = request.headers["koboasset"]
+    # attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
 
     # initialize Bitrix24 API client
-    client = Bitrix24(request.headers["targeturl"])
+    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
 
     # create API payload body
     payload, target_entity = {}, ""
@@ -102,17 +100,17 @@ async def kobo_to_bitrix24(
         else:
             kobo_value = kobo_data[kobo_field]
 
-        kobo_value_url = str(kobo_value).replace(" ", "_")
-        kobo_value_url = re.sub(r"[(,)']", "", kobo_value_url)
-        if kobo_value_url not in attachments.keys():
-            payload[target_entity][target_field] = kobo_value
-        else:
-            file_url = attachments[kobo_value_url]["url"]
-            file = get_kobo_attachment(file_url, kobotoken)
-            file_b64 = base64.b64encode(file).decode("utf8")
-            payload[target_entity][
-                target_field
-            ] = f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
+        # kobo_value_url = str(kobo_value).replace(" ", "_")
+        # kobo_value_url = re.sub(r"[(,)']", "", kobo_value_url)
+        # if kobo_value_url not in attachments.keys():
+        payload[target_entity][target_field] = kobo_value
+        # else:
+        #     file_url = attachments[kobo_value_url]["url"]
+        #     file = get_kobo_attachment(file_url, kobotoken)
+        #     file_b64 = base64.b64encode(file).decode("utf8")
+        #     payload[target_entity][
+        #         target_field
+        #     ] = f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
 
     if len(payload) == 0:
         error_message = "No fields found in submission or no entities found in headers"
