@@ -84,7 +84,11 @@ async def kobo_to_121(
             elif target_field == "scope":
                 payload[target_field] = clean_text(kobo_data[kobo_field])
             elif target_field == "fspName":
-                payload["programFinancialServiceProviderConfigurationName"] = kobo_data[
+                payload["programFspConfigurationName"] = kobo_data[
+                    kobo_field
+                ]
+            elif target_field == "programFinancialServiceProviderConfigurationName":
+                payload["programFspConfigurationName"] = kobo_data[
                     kobo_field
                 ]
             elif (
@@ -499,9 +503,10 @@ async def create_121_program_from_kobo(
     if (
         "fspName" not in FIELDNAMES
         and "programFinancialServiceProviderConfigurationName" not in FIELDNAMES
+        and "programFspConfigurationName" not in FIELDNAMES
     ):
         MISSINGFIELDS.append(
-            "fspName or programFinancialServiceProviderConfigurationName"
+            "programFspConfigurationName or fspName or programFinancialServiceProviderConfigurationName"
         )
 
     if len(MISSINGFIELDS) != 0:
@@ -571,7 +576,7 @@ async def create_121_program_from_kobo(
             and row["name"] not in CHECKFIELDS
             and row["name"] not in fspquestions
             and row["name"]
-            not in ["fspName", "programFinancialServiceProviderConfigurationName"]
+            not in ["fspName", "programFinancialServiceProviderConfigurationName", "programFspConfigurationName"]
         ):
             koboConnectHeader.append(row["name"])
             question = {
