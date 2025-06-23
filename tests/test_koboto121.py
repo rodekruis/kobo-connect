@@ -33,7 +33,7 @@ def test_kobo_to_121_payload():
     assert payload["birthYear"] == "1600"
     assert payload["date"] == "2024-04-16"
     assert payload["deputyMain"] == "Beneficiary"
-    assert payload["programFinancialServiceProviderConfigurationName"] == "Excel"
+    assert payload["programFspConfigurationName"] == "Excel"
     assert payload["fullName"] == "asdf"
     assert payload["maxPayments"] == 5
     assert payload["NRC"] == "12345"
