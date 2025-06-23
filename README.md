@@ -13,7 +13,8 @@ Documentation:
 * [EspoCRM](docs/EspoCRM.md)
 * [121](docs/121.md)
 * [Bitrix24](docs/Bitrix24.md)
-* [Utils](docs/Utils.md)
+
+API Specification: https://kobo-connect.azurewebsites.net/docs
 
 ## Run locally
 
