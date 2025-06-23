@@ -37,7 +37,7 @@ app = FastAPI(
     "Built with love by [NLRC 510](https://www.510.global/). "
     "See [the project on GitHub](https://github.com/rodekruis/kobo-connect) "
     "or [contact us](mailto:support@510.global).",
-    version="0.0.3",
+    version="0.0.4",
     license_info={
         "name": "AGPL-3.0 license",
         "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",

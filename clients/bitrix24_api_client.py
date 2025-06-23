@@ -20,11 +20,14 @@ class Bitrix24:
         )
 
         if response.status_code != 200:
+            print(
+                f"Failed: Bitrix24 returned {response.status_code} {response.content}"
+            )
             logger.error(
                 f"Failed: Bitrix24 returned {response.status_code} {response.content}",
                 extra=logs,
             )
-            update_submission_status(submission, "failed", response.content)
+            # update_submission_status(submission, "failed", response.content)
             raise HTTPException(
                 status_code=response.status_code, detail=f"{response.content}"
             )
