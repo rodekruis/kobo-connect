@@ -541,32 +541,45 @@ async def create_121_program_from_kobo(
         raise HTTPException(status_code=400, detail="Date format should be dd/mm/yyyyx")
 
     # Create the JSON structure
-    data = {
-        "published": True,
-        "validation": lookupdict["validation"].upper() == "TRUE",
-        "location": lookupdict["location"],
-        "ngo": lookupdict["ngo"],
-        "titlePortal": {lookupdict["language"]: lookupdict["titlePortal"]},
-        "titlePaApp": {lookupdict["language"]: lookupdict["titlePortal"]},
-        "description": {"en": ""},
-        "startDate": start_date,
-        "endDate": end_date,
-        "currency": lookupdict["currency"],
-        "distributionFrequency": lookupdict["distributionFrequency"],
-        "distributionDuration": int(lookupdict["distributionDuration"]),
-        "fixedTransferValue": int(lookupdict["fixedTransferValue"]),
-        "paymentAmountMultiplierFormula": "",
-        "targetNrRegistrations": int(lookupdict["targetNrRegistrations"]),
-        "tryWhatsAppFirst": lookupdict["tryWhatsAppFirst"].upper() == "TRUE",
-        "programCustomAttributes": [],
-        "programRegistrationAttributes": [],
-        "aboutProgram": {lookupdict["language"]: lookupdict["aboutProgram"]},
-        "fullnameNamingConvention": [lookupdict["fullnameNamingConvention"]],
-        "languages": [lookupdict["language"]],
-        "enableMaxPayments": lookupdict["enableMaxPayments"].upper() == "TRUE",
-        "allowEmptyPhoneNumber": False,
-        "enableScope": False,
-    }
+    try:
+        data = {
+            "published": True,
+            "validation": lookupdict.get("validation", "FALSE").upper() == "TRUE",
+            "location": lookupdict.get("location", ""),
+            "ngo": lookupdict.get("ngo", ""),
+            "titlePortal": {lookupdict.get("language", "en"): lookupdict.get("titlePortal", "")},
+            "titlePaApp": {lookupdict.get("language", "en"): lookupdict.get("titlePortal", "")},
+            "description": {"en": ""},
+            "startDate": start_date,
+            "endDate": end_date,
+            "currency": lookupdict.get("currency", ""),
+            "distributionFrequency": lookupdict.get("distributionFrequency", ""),
+            "distributionDuration": int(lookupdict.get("distributionDuration", 0)),
+            "fixedTransferValue": int(lookupdict.get("fixedTransferValue", 0)),
+            "paymentAmountMultiplierFormula": "",
+            "targetNrRegistrations": int(lookupdict.get("targetNrRegistrations", 0)),
+            "tryWhatsAppFirst": lookupdict.get("tryWhatsAppFirst", "FALSE").upper() == "TRUE",
+            "programCustomAttributes": [],
+            "programRegistrationAttributes": [],
+            "aboutProgram": {lookupdict.get("language", "en"): lookupdict.get("aboutProgram", "")},
+            "fullnameNamingConvention": [lookupdict.get("fullnameNamingConvention", "")],
+            "languages": [lookupdict.get("language", "en")],
+            "enableMaxPayments": lookupdict.get("enableMaxPayments", "FALSE").upper() == "TRUE",
+            "allowEmptyPhoneNumber": False,
+            "enableScope": False,
+        }
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error creating data structure: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid data format in Kobo form: {str(e)}"
+        )
+    except KeyError as e:
+        logger.error(f"Missing required field: {str(e)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field in Kobo form: {str(e)}"
+        )
 
     koboConnectHeader = ["fspName", "preferredLanguage", "maxPayments"]
 
