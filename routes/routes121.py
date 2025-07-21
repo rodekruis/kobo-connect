@@ -609,7 +609,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-registrations"],
+                "export": ["registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
@@ -639,7 +639,7 @@ async def create_121_program_from_kobo(
                 "pattern": "",
                 "phases": [],
                 "editableInPortal": True,
-                "export": ["all-registrations"],
+                "export": ["registrations"],
                 "shortLabel": {
                     "en": row["name"],
                 },
@@ -704,7 +704,7 @@ async def prepare_kobo_validation(
 
     # Fetch data from 121 platform
     response = requests.get(
-        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/all-registrations",
+        f"{request.headers['url121']}/api/programs/{programId}/metrics/export-list/registrations",
         headers={"Cookie": f"access_token_general={access_token}"},
     )
     if response.status_code != 200:
