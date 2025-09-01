@@ -111,8 +111,8 @@ async def kobo_to_bitrix24(
 import json
 
 # Send to Bitrix24
-logger.info(f"Outgoing Bitrix24 endpoint: {target_entity}", extra=extra_logs)
-logger.info(f"Outgoing Bitrix24 payload: {json.dumps(payload)}", extra=extra_logs)
+    logger.info(f"Outgoing Bitrix24 endpoint: {target_entity}", extra=extra_logs)
+    logger.info(f"Outgoing Bitrix24 payload: {json.dumps(payload)}", extra=extra_logs)
     
     # Send to Bitrix24
     response = client.request(
