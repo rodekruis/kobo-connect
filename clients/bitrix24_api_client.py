@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from utils.logger import logger
 from utils.cosmos import update_submission_status
+import json
 import requests
 
 
@@ -12,17 +13,18 @@ class Bitrix24:
             url = url[:-1]
         self.url = url + "/rest/1/" + key + "/"
 
-    def request(self, method, endpoint, submission, params=None, logs=None):
+    def request(self, method, endpoint, payload=None, params=None, logs=None):
         """Make a request to Bitrix24. If the request fails, update submission status in CosmosDB."""
-
+        headers = {"Content-Type": "application/json"}
         response = requests.request(
-            method=method, url=self.url + endpoint, params=params
+            method=method,
+            url=self.url + endpoint,
+            headers=headers,
+            data=json.dumps(payload),
+            params=params,
         )
 
         if response.status_code != 200:
-            print(
-                f"Failed: Bitrix24 returned {response.status_code} {response.content}"
-            )
             logger.error(
                 f"Failed: Bitrix24 returned {response.status_code} {response.content}",
                 extra=logs,
