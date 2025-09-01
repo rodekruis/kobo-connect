@@ -60,6 +60,7 @@ async def kobo_to_bitrix24(
     client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
 
     # create API payload body
+
 # Build the fields dict for Bitrix
 fields = {}
 
@@ -93,6 +94,43 @@ for kobo_field, target_field in request.headers.items():
             if repeat_question not in kobo_data[kobo_field][repeat_no]:
                 continue
             kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
+=======
+    payload, target_entity = {}, ""
+    for kobo_field, target_field in request.headers.items():
+        if ":" in kobo_field and kobo_field not in kobo_data:
+            split_header = kobo_field.split(":")
+            if len(split_header) == 2:
+                target_entity, target_field_name = split_header
+                if target_entity not in payload:
+                    payload[target_entity] = {}
+                payload[target_entity][target_field_name] = target_field
+                continue
+                
+        multi = False
+        repeat, repeat_no, repeat_question = False, 0, ""
+
+        # determine if kobo_field is of type multi or repeat
+        if "multi:" in kobo_field:
+            kobo_field = kobo_field.split(":")[1]
+            multi = True
+        if "repeat:" in kobo_field:
+            split = kobo_field.split(":")
+            kobo_field = split[1]
+            repeat_no = int(split[2])
+            repeat_question = split[3]
+            repeat = True
+
+        # check if kobo_field is in kobo_data
+        if kobo_field not in kobo_data.keys():
+            continue
+
+        # check if entity is nested in target_field
+        if len(target_field.split(":")) == 2:
+            target_entity = target_field.split(":")[0]
+            target_field = target_field.split(":")[1]
+            if target_entity not in payload.keys():
+                payload[target_entity] = {}
+
         else:
             continue
     else:
