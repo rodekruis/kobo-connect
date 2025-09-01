@@ -26,6 +26,7 @@ async def kobo_to_bitrix24(
     """Send a Kobo submission to Bitrix24."""
 
     kobo_data = await request.json()
+    kobo_data["formhub/uuid"] = kobo_data.get("_uuid", "")
     extra_logs = {"environment": os.getenv("ENV")}
     try:
         extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
