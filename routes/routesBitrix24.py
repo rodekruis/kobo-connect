@@ -38,6 +38,9 @@ async def kobo_to_bitrix24(
     target_response = {}
 
     # store the kobo submission uuid and status in cosmos, to avoid duplicate submissions
+    if "formhub/uuid" not in kobo_data:
+        kobo_data["formhub/uuid"] = kobo_data["_uuid"]
+
     submission = add_submission(kobo_data)
     if submission["status"] == "success":
         return JSONResponse(
