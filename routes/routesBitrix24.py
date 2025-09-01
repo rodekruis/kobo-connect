@@ -119,7 +119,7 @@ async def kobo_to_bitrix24(
         "POST",
         target_entity,
         submission,
-        params=payload,
+        json=payload,
         logs=extra_logs,
     )
 
