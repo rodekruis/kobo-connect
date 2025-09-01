@@ -1,49 +1,32 @@
-from fastapi import APIRouter, Request, HTTPException, Header, Depends
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from utils.cosmos import add_submission, update_submission_status
-from utils.utilsKobo import (
-    clean_kobo_data,
-    get_attachment_dict,
-    get_kobo_attachment,
-)
+from utils.utilsKobo import clean_kobo_data
 from utils.logger import logger
 from clients.bitrix24_api_client import Bitrix24
 import os
-import re
-import base64
 
 router = APIRouter()
 
-
-def required_headers_bitrix24(
-    targeturl: str = Header(...),
-    entitytypeid: str = Header(...),
-):
-    return {"targeturl": targeturl, "entitytypeid": entitytypeid}
-
 @router.post("/kobo-to-bitrix24", tags=["Bitrix24"])
-async def kobo_to_bitrix24(
-    request: Request, dependencies=Depends(required_headers_bitrix24)
-):
-    """Send a Kobo submission to Bitrix24."""
+async def kobo_to_bitrix24(request: Request):
+    """Receive Kobo submission and send to Bitrix24 using custom header mapping."""
 
-    kobo_data = await request.json()
-    extra_logs = {"environment": os.getenv("ENV")}
+    # Step 1: Parse Kobo submission
     try:
-        extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
-        extra_logs["kobo_form_version"] = str(kobo_data["__version__"])
-        extra_logs["kobo_submission_id"] = str(kobo_data["_id"])
-    except KeyError:
-        raise HTTPException(status_code=422, detail="Not a valid Kobo submission")
+        kobo_data = await request.json()
+        extra_logs = {
+            "environment": os.getenv("ENV"),
+            "kobo_form_id": str(kobo_data.get("_xform_id_string", "")),
+            "kobo_form_version": str(kobo_data.get("__version__", "")),
+            "kobo_submission_id": str(kobo_data.get("_id", "")),
+        }
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid JSON body from Kobo")
+
     kobo_data = clean_kobo_data(kobo_data)
 
-
-    bitrix_url = dependencies["targeturl"]
-    entity_type_id = dependencies["entitytypeid"]
-    
-    target_response = {}
-
-    # store the kobo submission uuid and status in cosmos, to avoid duplicate submissions
+    # Step 2: Check for duplicates
     submission = add_submission(kobo_data)
     if submission["status"] == "success":
         return JSONResponse(
@@ -51,131 +34,99 @@ async def kobo_to_bitrix24(
             content={"detail": "Submission has already been successfully processed"},
         )
 
-    # get kobo attachments
-    # kobotoken = request.headers["kobotoken"]
-    # koboasset = request.headers["koboasset"]
-    # attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
+    # Step 3: Read headers
+    headers = request.headers
+    target_url = headers.get("targeturl")
+    target_key = headers.get("targetkey")
+    entity_type_id = headers.get("entitytypeid")
 
-    # initialize Bitrix24 API client
-    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
+    if not target_url or not target_key or not entity_type_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required headers: 'targeturl', 'targetkey', or 'entitytypeid'",
+        )
 
-    # create API payload body
+    try:
+        entity_type_id = int(entity_type_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="'entitytypeid' must be an integer")
 
-# Build the fields dict for Bitrix
-fields = {}
+    # Step 4: Build Bitrix fields (with multi/repeat logic)
+    fields = {}
+    RESERVED = {"targeturl", "targetkey", "entitytypeid", "host", "content-length", "content-type", "user-agent", "accept", "accept-encoding", "connection"}
 
-for kobo_field, target_field in request.headers.items():
+    for kobo_field, bitrix_field in headers.items():
+        if kobo_field.lower() in RESERVED:
+            continue
 
-    multi = False
-    repeat, repeat_no, repeat_question = False, 0, ""
-
-    # handle multi and repeat logic
-    if "multi:" in kobo_field:
-        kobo_field = kobo_field.split(":")[1]
-        multi = True
-    if "repeat:" in kobo_field:
-        split = kobo_field.split(":")
-        kobo_field = split[1]
-        repeat_no = int(split[2])
-        repeat_question = split[3]
-        repeat = True
-
-    if kobo_field not in kobo_data:
-        continue
-
-    # handle values
-    if multi:
-        kobo_value = kobo_data[kobo_field].split(" ")
-    elif repeat:
-        if 0 <= repeat_no < len(kobo_data[kobo_field]):
-            kobo_data[kobo_field][repeat_no] = clean_kobo_data(
-                kobo_data[kobo_field][repeat_no]
-            )
-            if repeat_question not in kobo_data[kobo_field][repeat_no]:
-                continue
-            kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
-=======
-    payload, target_entity = {}, ""
-    for kobo_field, target_field in request.headers.items():
-        if ":" in kobo_field and kobo_field not in kobo_data:
-            split_header = kobo_field.split(":")
-            if len(split_header) == 2:
-                target_entity, target_field_name = split_header
-                if target_entity not in payload:
-                    payload[target_entity] = {}
-                payload[target_entity][target_field_name] = target_field
-                continue
-                
         multi = False
-        repeat, repeat_no, repeat_question = False, 0, ""
+        repeat = False
+        repeat_no = 0
+        repeat_question = ""
 
-        # determine if kobo_field is of type multi or repeat
+        # handle multi: prefix
         if "multi:" in kobo_field:
-            kobo_field = kobo_field.split(":")[1]
+            kobo_field = kobo_field.split("multi:")[1]
             multi = True
-        if "repeat:" in kobo_field:
-            split = kobo_field.split(":")
-            kobo_field = split[1]
-            repeat_no = int(split[2])
-            repeat_question = split[3]
-            repeat = True
 
-        # check if kobo_field is in kobo_data
-        if kobo_field not in kobo_data.keys():
+        # handle repeat: prefix
+        elif "repeat:" in kobo_field:
+            parts = kobo_field.split(":")
+            if len(parts) >= 4:
+                _, field, index, subfield = parts
+                kobo_field = field
+                repeat_no = int(index)
+                repeat_question = subfield
+                repeat = True
+
+        if kobo_field not in kobo_data:
             continue
 
-        # check if entity is nested in target_field
-        if len(target_field.split(":")) == 2:
-            target_entity = target_field.split(":")[0]
-            target_field = target_field.split(":")[1]
-            if target_entity not in payload.keys():
-                payload[target_entity] = {}
-
+        # Value extraction
+        if multi:
+            kobo_value = kobo_data[kobo_field].split(" ")
+        elif repeat:
+            if isinstance(kobo_data[kobo_field], list) and 0 <= repeat_no < len(kobo_data[kobo_field]):
+                cleaned = clean_kobo_data(kobo_data[kobo_field][repeat_no])
+                if repeat_question in cleaned:
+                    kobo_value = cleaned[repeat_question]
+                else:
+                    continue
+            else:
+                continue
         else:
-            continue
-    else:
-        kobo_value = kobo_data[kobo_field]
+            kobo_value = kobo_data[kobo_field]
 
-    # parse target field name
-    if ":" in target_field:
-        _, target_field = target_field.split(":", 1)
+        # parse target field name if it includes colons
+        if ":" in bitrix_field:
+            _, bitrix_field = bitrix_field.split(":", 1)
 
-    fields[target_field] = kobo_value
+        fields[bitrix_field] = kobo_value
 
-# Final payload for Bitrix24
-payload = {
-    "entityTypeId": int(dependencies["entitytypeid"]),
-    "fields": fields
-}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No mapped fields found in Kobo submission")
 
-        # else:
-        #     file_url = attachments[kobo_value_url]["url"]
-        #     file = get_kobo_attachment(file_url, kobotoken)
-        #     file_b64 = base64.b64encode(file).decode("utf8")
-        #     payload[target_entity][
-        #         target_field
-        #     ] = f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
+    # Step 5: Send to Bitrix
+    payload = {
+        "entityTypeId": entity_type_id,
+        "fields": fields,
+    }
 
-    if len(payload) == 0:
-        error_message = "No fields found in submission or no entities found in headers"
-        logger.error(f"Failed: {error_message}", extra=extra_logs)
+    client = Bitrix24(target_url, target_key)
+    response = client.request(
+        "POST",
+        "crm.item.add.json",
+        submission,
+        params=payload,
+        logs=extra_logs,
+    )
+
+    if "result" not in response:
+        error_message = response.content.decode("utf-8")
+        logger.error(f"Bitrix request failed: {error_message}", extra=extra_logs)
         update_submission_status(submission, "failed", error_message)
+        raise HTTPException(status_code=500, detail="Bitrix24 rejected the request")
 
-response = client.request(
-    "POST",
-    "crm.item.add.json",
-    submission,
-    params=payload,
-    logs=extra_logs,
-)
-
-if "result" not in response:
-    error_message = response.content.decode("utf-8")
-    logger.error(f"Failed: {error_message}", extra=extra_logs)
-    update_submission_status(submission, "failed", error_message)
-else:
-    target_response = response
-
-    logger.info("Success", extra=extra_logs)
+    logger.info("Bitrix submission successful", extra=extra_logs)
     update_submission_status(submission, "success")
-    return JSONResponse(status_code=200, content=target_response)
+    return JSONResponse(status_code=200, content=response)
