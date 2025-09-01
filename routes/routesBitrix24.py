@@ -108,7 +108,7 @@ async def kobo_to_bitrix24(
         update_submission_status(submission, "failed", error_message)
 
 
-import json
+    import json
 
 # Send to Bitrix24
     logger.info(f"Outgoing Bitrix24 endpoint: {target_entity}", extra=extra_logs)
