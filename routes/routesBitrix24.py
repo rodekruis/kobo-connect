@@ -56,7 +56,15 @@ async def kobo_to_bitrix24(
     # create API payload body
     payload, target_entity = {}, ""
     for kobo_field, target_field in request.headers.items():
-
+        if ":" in kobo_field and kobo_field not in kobo_data:
+            split_header = kobo_field.split(":")
+            if len(split_header) == 2:
+                target_entity, target_field_name = split_header
+                if target_entity not in payload:
+                    payload[target_entity] = {}
+                payload[target_entity][target_field_name] = target_field
+                continue
+                
         multi = False
         repeat, repeat_no, repeat_question = False, 0, ""
 
