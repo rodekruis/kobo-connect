@@ -11,7 +11,7 @@ class Bitrix24:
     def __init__(self, url, key):
         if url.endswith("/"):
             url = url[:-1]
-        self.url = url + "/rest/1/" + key + "/"
+        self.url = url + "/rest/3060/" + key + "/"
 
     def request(self, method, endpoint, payload=None, params=None, logs=None):
         """Make a request to Bitrix24. If the request fails, update submission status in CosmosDB."""
