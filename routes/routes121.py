@@ -589,7 +589,7 @@ async def create_121_program_from_kobo(
             and row["name"] not in CHECKFIELDS
             and row["name"] not in fspquestions
             and row["name"]
-            not in ["fspName", "programFinancialServiceProviderConfigurationName", "programFspConfigurationName"]
+            not in ["fspName", "programFinancialServiceProviderConfigurationName", "programFspConfigurationName", "phase", "phoneNumberPlaceHolder", "FinancialServiceProviders", "description"]
         ):
             koboConnectHeader.append(row["name"])
             question = {
