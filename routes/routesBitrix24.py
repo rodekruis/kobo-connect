@@ -26,6 +26,7 @@ async def kobo_to_bitrix24(
     """Send a Kobo submission to Bitrix24."""
 
     kobo_data = await request.json()
+    kobo_data["formhub/uuid"] = kobo_data.get("_uuid", "")
     extra_logs = {"environment": os.getenv("ENV")}
     try:
         extra_logs["kobo_form_id"] = str(kobo_data["_xform_id_string"])
@@ -38,6 +39,9 @@ async def kobo_to_bitrix24(
     target_response = {}
 
     # store the kobo submission uuid and status in cosmos, to avoid duplicate submissions
+    if "formhub/uuid" not in kobo_data:
+        kobo_data["formhub/uuid"] = kobo_data["_uuid"]
+
     submission = add_submission(kobo_data)
     if submission["status"] == "success":
         return JSONResponse(
@@ -45,22 +49,29 @@ async def kobo_to_bitrix24(
             content={"detail": "Submission has already been successfully processed"},
         )
 
-    # get kobo attachments
-    # kobotoken = request.headers["kobotoken"]
-    # koboasset = request.headers["koboasset"]
-    # attachments = get_attachment_dict(kobo_data, kobotoken, koboasset)
-
     # initialize Bitrix24 API client
     client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
 
-    # create API payload body
-    payload, target_entity = {}, ""
+    # --- Begin SPA logic ---
+    payload = {"fields": {}}
+
+    # Read entityTypeId from header (required for SPA)
+    if "entitytypeid" in request.headers:
+        payload["entityTypeId"] = int(request.headers["entitytypeid"])
+        target_entity = "crm.item.add.json"
+    else:
+        error_message = "Missing entityTypeId in headers for SPA"
+        logger.error(f"Failed: {error_message}", extra=extra_logs)
+        update_submission_status(submission, "failed", error_message)
+
+    # Loop through headers to map Kobo data to Bitrix24 fields
     for kobo_field, target_field in request.headers.items():
+        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid"]:
+            continue
 
         multi = False
         repeat, repeat_no, repeat_question = False, 0, ""
 
-        # determine if kobo_field is of type multi or repeat
         if "multi:" in kobo_field:
             kobo_field = kobo_field.split(":")[1]
             multi = True
@@ -71,20 +82,9 @@ async def kobo_to_bitrix24(
             repeat_question = split[3]
             repeat = True
 
-        # check if kobo_field is in kobo_data
         if kobo_field not in kobo_data.keys():
             continue
 
-        # check if entity is nested in target_field
-        if len(target_field.split(":")) == 2:
-            target_entity = target_field.split(":")[0]
-            target_field = target_field.split(":")[1]
-            if target_entity not in payload.keys():
-                payload[target_entity] = {}
-        else:
-            continue
-
-        # get kobo_value based on kobo_field type
         if multi:
             kobo_value = kobo_data[kobo_field].split(" ")
         elif repeat:
@@ -100,39 +100,29 @@ async def kobo_to_bitrix24(
         else:
             kobo_value = kobo_data[kobo_field]
 
-        # kobo_value_url = str(kobo_value).replace(" ", "_")
-        # kobo_value_url = re.sub(r"[(,)']", "", kobo_value_url)
-        # if kobo_value_url not in attachments.keys():
-        payload[target_entity][target_field] = kobo_value
-        # else:
-        #     file_url = attachments[kobo_value_url]["url"]
-        #     file = get_kobo_attachment(file_url, kobotoken)
-        #     file_b64 = base64.b64encode(file).decode("utf8")
-        #     payload[target_entity][
-        #         target_field
-        #     ] = f"data:{attachments[kobo_value_url]['mimetype']};base64,{file_b64}"
+        payload["fields"][target_field] = kobo_value
 
-    if len(payload) == 0:
-        error_message = "No fields found in submission or no entities found in headers"
+    if len(payload["fields"]) == 0:
+        error_message = "No fields found in submission or no mappings found in headers"
         logger.error(f"Failed: {error_message}", extra=extra_logs)
         update_submission_status(submission, "failed", error_message)
 
-    for target_entity in payload.keys():
+    import json
 
-        response = client.request(
-            "POST",
-            target_entity,
-            submission,
-            params=payload[target_entity],
-            logs=extra_logs,
-        )
+    # Send to Bitrix24
+    response = client.request(
+        "POST",
+        target_entity,
+        payload,
+        logs=extra_logs,
+    )
 
-        if "result" not in response.keys():
-            error_message = response.content.decode("utf-8")
-            logger.error(f"Failed: {error_message}", extra=extra_logs)
-            update_submission_status(submission, "failed", error_message)
-        else:
-            target_response[target_entity] = response
+    if "result" not in response.keys():
+        error_message = response.content.decode("utf-8")
+        logger.error(f"Failed: {error_message}", extra=extra_logs)
+        update_submission_status(submission, "failed", error_message)
+    else:
+        target_response[target_entity] = response
 
     logger.info("Success", extra=extra_logs)
     update_submission_status(submission, "success")
