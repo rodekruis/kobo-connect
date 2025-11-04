@@ -5,6 +5,7 @@ import os
 import io
 import json
 import csv
+import base64
 import pandas as pd
 from datetime import datetime, timedelta
 from fastapi.responses import JSONResponse
