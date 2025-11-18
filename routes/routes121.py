@@ -411,6 +411,7 @@ async def create_offline_validation_form(
             "email_notification": True,
             "export_type": "json",
             "settings": {"custom_headers": {}},
+            "subset_fields": [],
         }
 
         customKoboRestHeaders["referenceId"] = "referenceId"
@@ -661,6 +662,7 @@ async def create_121_program_from_kobo(
         "email_notification": True,
         "export_type": "json",
         "settings": {"custom_headers": {}},
+        "subset_fields": [],
     }
     koboConnectHeader = koboConnectHeader + fspquestions
     customHeaders = dict(zip(koboConnectHeader, koboConnectHeader))
