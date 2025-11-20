@@ -541,7 +541,8 @@ async def create_121_program_from_kobo(
         start_date = datetime.strptime(lookupdict["startDate"], "%d/%m/%Y").isoformat()
         end_date = datetime.strptime(lookupdict["endDate"], "%d/%m/%Y").isoformat()
     except ValueError:
-        raise HTTPException(status_code=400, detail="Date format should be: 'dd/mm/yyyy'")
+        start_date = datetime.now().isoformat()
+        end_date = (datetime.now() + timedelta(days=90)).isoformat()
 
     # Create the JSON structure
     try:
