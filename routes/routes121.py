@@ -98,7 +98,14 @@ async def kobo_to_121(
             ):
                 payload[target_field] = kobo_data[kobo_field]
             else:
-                payload[target_field] = attachments[kobo_value_url]["url"]
+                try:
+                    payload[target_field] = attachments[kobo_value_url]["url"]
+                except KeyError:
+                    logger.warning(
+                        f"Could not retrieve attachment URL for field '{target_field}' with value '{kobo_value_url}'",
+                        extra=extra_logs,
+                    )
+                    payload[target_field] = "could not retrieve attachment url from kobo"
 
     payload["referenceId"] = referenceId
 

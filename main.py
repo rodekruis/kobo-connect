@@ -63,11 +63,20 @@ app.include_router(routesBitrix24.router)
 @app.get("/health")
 async def health():
     """Get health of instance."""
-    kobo = requests.get(f"https://kobo.ifrc.org/api/v2")
-    return JSONResponse(
-        status_code=200,
-        content={"kobo-connect": 200, "kobo.ifrc.org": kobo.status_code},
-    )
+    logger.info("Health check initiated")
+    try:
+        kobo = requests.get(f"https://kobo.ifrc.org/api/v2", timeout=10)
+        logger.info(f"Kobo API health check completed with status: {kobo.status_code}")
+        return JSONResponse(
+            status_code=200,
+            content={"kobo-connect": 200, "kobo.ifrc.org": kobo.status_code},
+        )
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Kobo API health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=200,
+            content={"kobo-connect": 200, "kobo.ifrc.org": "unavailable"},
+        )
 
 
 if __name__ == "__main__":
