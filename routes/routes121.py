@@ -520,7 +520,7 @@ async def create_121_program_from_kobo(
         )
 
     if len(MISSINGFIELDS) != 0:
-        print("Missing hidden fields in the template: ", MISSINGFIELDS)
+        logger.error(f"Missing required keys in kobo form: {MISSINGFIELDS}")
         raise HTTPException(
             status_code=400,
             detail=f"Missing required keys in kobo form: {MISSINGFIELDS}",
