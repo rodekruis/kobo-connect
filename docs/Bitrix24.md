@@ -22,8 +22,7 @@ https://kobo-connect.azurewebsites.net/kobo-to-bitrix24
    - The header `Name` (left) must correspond to the Kobo question **name**. You can check the Kobo question name by going into edit mode of the form, open `Settings` of the specific question and inspect the `Data Column Name`. Also, the Kobo question names can be found in the `Data` table with previous submissions. This Kobo question name is different from the [Kobo question label](https://support.kobotoolbox.org/getting_started_xlsform.html#adding-questions) and can not contain spaces or symbols (except the underscore).
    - The header `Value` (right) must correspond to the Bitrix24 method (e.g. `crm.contact.add`) followed by `.json`, followed by the specific field **name**. Example: `crm.contact.add.json:FIELDS[NAME]`. If you don't know the field names if your entity, use a new webhook with method `crm.contact.fields`.
 
-> [!IMPORTANT]  
-> Sending **attachments** (e.g. images) to Bitrix24 is currently **not** supported.
-
+10. To send attachments add two headers to kobo rest services - kobotoken (to facilitate downloading of files from kobo) and for your file field "attachment-FieldName"
 <img src="https://github.com/user-attachments/assets/9c8ea559-0d79-41f6-9f47-eeca24c26438" width="500">
 
+10. Update functionality: To update an existing Bitrix24 record instead of creating a new one, add an id field to the Kobo form containing the Bitrix24 record ID, in Bitrix this field is always called 'id'. Add a field in Kobo to specify 'update' or 'add'. This should ideally be a calculate field, but either can work, as long as the values are exactly 'add' or 'update'. Map both these in the rest service, with the calculate field being mapped to operation.
