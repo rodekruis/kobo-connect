@@ -127,10 +127,19 @@ async def kobo_to_linked_kobo(
         )
 
     # get submissions of parent form
-    target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['parentasset']}/data/?format=json"
+    target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['parentasset']}/data.json"
     koboheaders = {"Authorization": f"Token {request.headers['kobotoken']}"}
-    response = requests.get(target_url, headers=koboheaders)
-    parent_submissions = json.loads(response.content)
+    start, limit = 0, 100
+    parent_submissions = []
+    while True:
+        params = {"limit": limit, "start": start}
+        resp = requests.get(target_url, headers=koboheaders, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        parent_submissions.extend(data["results"])
+        if not data["next"]:
+            break
+        start += limit
 
     # get child form
     target_url = f"https://kobo.ifrc.org/api/v2/assets/{request.headers['childasset']}/?format=json"
@@ -144,7 +153,7 @@ async def kobo_to_linked_kobo(
 
     # create new choice list based on parent form submissions
     new_choices_form, kuids, names = [], [], []
-    for parent_submission in parent_submissions["results"]:
+    for parent_submission in parent_submissions:
         for key in parent_submission.keys():
             if key.split("/")[-1] == request.headers["parentquestion"]:
                 name = parent_submission[key]
