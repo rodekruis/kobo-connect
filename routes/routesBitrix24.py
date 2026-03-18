@@ -50,7 +50,7 @@ async def kobo_to_bitrix24(
         )
 
     # initialize Bitrix24 API client
-    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
+    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"], request.headers.get("userid", "1"))
 
     # --- Begin SPA logic ---
     payload = {"fields": {}}
