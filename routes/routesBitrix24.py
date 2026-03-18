@@ -56,17 +56,31 @@ async def kobo_to_bitrix24(
     payload = {"fields": {}}
 
     # Read entityTypeId from header (required for SPA)
-    if "entitytypeid" in request.headers:
-        payload["entityTypeId"] = int(request.headers["entitytypeid"])
-        target_entity = "crm.item.add.json"
-    else:
+    if "entitytypeid" not in request.headers:
         error_message = "Missing entityTypeId in headers for SPA"
         logger.error(f"Failed: {error_message}", extra=extra_logs)
         update_submission_status(submission, "failed", error_message)
+        raise HTTPException(status_code=422, detail=error_message)
+    
+    payload["entityTypeId"] = int(request.headers["entitytypeid"])
+    
+    operation = kobo_data.get("operation", "add").lower()
+    
+    if operation == "update":
+        record_id = kobo_data.get("id")
+        if not record_id:
+            error_message = "Field 'id' not found in Kobo submission data"
+            logger.error(f"Failed: {error_message}", extra=extra_logs)
+            update_submission_status(submission, "failed", error_message)
+            raise HTTPException(status_code=422, detail=error_message)
+        payload["id"] = int(record_id)
+        target_entity = "crm.item.update"
+    else:
+        target_entity = "crm.item.add.json"
 
     # Loop through headers to map Kobo data to Bitrix24 fields
     for kobo_field, target_field in request.headers.items():
-        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid"]:
+        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid", "id", "operation"]:
             continue
 
         multi = False
