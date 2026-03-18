@@ -27,3 +27,4 @@ https://kobo-connect.azurewebsites.net/kobo-to-bitrix24
 
 <img src="https://github.com/user-attachments/assets/9c8ea559-0d79-41f6-9f47-eeca24c26438" width="500">
 
+10. Update functionality: To update an existing Bitrix24 record instead of creating a new one, add an id field to the Kobo form containing the Bitrix24 record ID, in Bitrix this field is always called 'id'. Add a field in Kobo to specify 'update' or 'add'. This should ideally be a calculate field, but either can work, as long as the values are exactly 'add' or 'update'. Map both these in the rest service, with the calculate field being mapped to operation.
