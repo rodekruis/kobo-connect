@@ -117,6 +117,10 @@ async def kobo_to_bitrix24(
                 continue
         elif attachment:
             filename = kobo_data[kobo_field]
+            logger.info(f"Photo field value: {filename}")
+            attachment_dict = get_attachment_dict(kobo_data)
+            logger.info(f"Attachment dict keys: {list(attachment_dict.keys())}")
+            filename = kobo_data[kobo_field]
             attachment_dict = get_attachment_dict(kobo_data)
             if filename not in attachment_dict:
                 logger.warning(f"Attachment '{filename}' not found in submission attachments")
