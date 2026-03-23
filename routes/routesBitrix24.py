@@ -116,17 +116,20 @@ async def kobo_to_bitrix24(
             else:
                 continue
         elif attachment:
-            filename = kobo_data[kobo_field]
-            logger.info(f"Photo field value: {filename}")
-            attachment_dict = get_attachment_dict(kobo_data)
-            logger.info(f"Attachment dict keys: {list(attachment_dict.keys())}")
-            filename = kobo_data[kobo_field]
-            attachment_dict = get_attachment_dict(kobo_data)
-            if filename not in attachment_dict:
-                logger.warning(f"Attachment '{filename}' not found in submission attachments")
+            try:
+                filename = kobo_data[kobo_field]
+                logger.info(f"Attachment field value: {filename}")
+                attachment_dict = get_attachment_dict(kobo_data)
+                logger.info(f"Attachment dict: {attachment_dict}")
+                if filename not in attachment_dict:
+                    logger.warning(f"Attachment '{filename}' not found in attachment_dict")
+                    continue
+                file_bytes = get_kobo_attachment(attachment_dict[filename]["url"], "")
+                logger.info(f"Downloaded {len(file_bytes)} bytes for {filename}")
+                kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
+            except Exception as e:
+                logger.error(f"Failed to process attachment: {e}")
                 continue
-            file_bytes = get_kobo_attachment(attachment_dict[filename]["url"], "")
-            kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
         else:
             kobo_value = kobo_data[kobo_field]
 
