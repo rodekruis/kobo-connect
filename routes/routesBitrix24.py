@@ -97,7 +97,7 @@ async def kobo_to_bitrix24(
             repeat_question = split[3]
             repeat = True
         if "attachment:" in kobo_field:
-            kobo_field = kobo_field.split(":")[1]
+            kobo_field = kobo_field.split("-")[1]
             attachment = True
 
         if kobo_field not in kobo_data.keys():
