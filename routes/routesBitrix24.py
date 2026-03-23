@@ -85,6 +85,7 @@ async def kobo_to_bitrix24(
 
         multi = False
         repeat, repeat_no, repeat_question = False, 0, ""
+        attachment = False
 
         if "multi:" in kobo_field:
             kobo_field = kobo_field.split(":")[1]
@@ -95,6 +96,9 @@ async def kobo_to_bitrix24(
             repeat_no = int(split[2])
             repeat_question = split[3]
             repeat = True
+        if "attachment:" in kobo_field:
+            kobo_field = kobo_field.split(":")[1]
+            attachment = True
 
         if kobo_field not in kobo_data.keys():
             continue
@@ -111,6 +115,14 @@ async def kobo_to_bitrix24(
                 kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
             else:
                 continue
+        elif attachment:
+            filename = kobo_data[kobo_field]
+            attachment_dict = get_attachment_dict(kobo_data)
+            if filename not in attachment_dict:
+                logger.warning(f"Attachment '{filename}' not found in submission attachments")
+                continue
+            file_bytes = get_kobo_attachment(attachment_dict[filename]["url"], "")
+            kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
         else:
             kobo_value = kobo_data[kobo_field]
 
