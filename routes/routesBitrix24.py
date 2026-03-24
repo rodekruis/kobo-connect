@@ -11,7 +11,7 @@ from clients.bitrix24_api_client import Bitrix24
 import os
 import re
 import base64
-
+import requests
 router = APIRouter()
 
 
@@ -117,22 +117,21 @@ async def kobo_to_bitrix24(
                 continue
         elif attachment:
             try:
-                logger.info(f"Raw kobo field value: {kobo_data[kobo_field]}")
+                print(f"RAW FIELD VALUE: {kobo_data[kobo_field]}", flush=True)
                 filename = kobo_data[kobo_field].split("/")[-1]
-                logger.info(f"Filename after split: {filename}")
+                print(f"FILENAME: {filename}", flush=True)
                 attachment_dict = get_attachment_dict(kobo_data)
-                logger.info(f"Attachment dict keys: {list(attachment_dict.keys())}")
-                logger.info(f"Full attachment dict: {attachment_dict}")
+                print(f"ATTACHMENT DICT KEYS: {list(attachment_dict.keys())}", flush=True)
                 if filename not in attachment_dict:
-                    logger.warning(f"Attachment '{filename}' not found in attachment_dict")
+                    print(f"ATTACHMENT NOT FOUND: {filename}", flush=True)
                     continue
                 response = requests.get(attachment_dict[filename]["url"])
-                logger.info(f"Download status: {response.status_code}")
+                print(f"DOWNLOAD STATUS: {response.status_code}", flush=True)
                 file_bytes = response.content
-                logger.info(f"Downloaded {len(file_bytes)} bytes for {filename}")
+                print(f"BYTES: {len(file_bytes)}", flush=True)
                 kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
             except Exception as e:
-                logger.error(f"Failed to process attachment: {e}")
+                print(f"ATTACHMENT ERROR: {e}", flush=True)
                 continue
         else:
             kobo_value = kobo_data[kobo_field]
