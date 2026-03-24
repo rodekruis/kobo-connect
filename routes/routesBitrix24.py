@@ -96,11 +96,11 @@ async def kobo_to_bitrix24(
             repeat_no = int(split[2])
             repeat_question = split[3]
             repeat = True
-        if "attachment:" in kobo_field:
+        if "attachment-" in kobo_field:
             kobo_field = kobo_field.split("-")[1]
             attachment = True
-
-        if kobo_field not in kobo_data.keys():
+        
+        if kobo_field not in kobo_data.keys():  # <-- now runs AFTER prefix is stripped
             continue
 
         if multi:
@@ -117,12 +117,17 @@ async def kobo_to_bitrix24(
                 continue
         elif attachment:
             try:
+                logger.info(f"Raw kobo field value: {kobo_data[kobo_field]}")
                 filename = kobo_data[kobo_field].split("/")[-1]
+                logger.info(f"Filename after split: {filename}")
                 attachment_dict = get_attachment_dict(kobo_data)
+                logger.info(f"Attachment dict keys: {list(attachment_dict.keys())}")
+                logger.info(f"Full attachment dict: {attachment_dict}")
                 if filename not in attachment_dict:
                     logger.warning(f"Attachment '{filename}' not found in attachment_dict")
                     continue
                 response = requests.get(attachment_dict[filename]["url"])
+                logger.info(f"Download status: {response.status_code}")
                 file_bytes = response.content
                 logger.info(f"Downloaded {len(file_bytes)} bytes for {filename}")
                 kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
