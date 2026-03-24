@@ -80,7 +80,7 @@ async def kobo_to_bitrix24(
 
     # Loop through headers to map Kobo data to Bitrix24 fields
     for kobo_field, target_field in request.headers.items():
-        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid", "id", "operation"]:
+        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid", "id", "operation","kobotoken"]:
             continue
 
         multi = False
@@ -125,7 +125,10 @@ async def kobo_to_bitrix24(
                 if filename not in attachment_dict:
                     print(f"ATTACHMENT NOT FOUND: {filename}", flush=True)
                     continue
-                response = requests.get(attachment_dict[filename]["url"])
+                response = requests.get(
+                    attachment_dict[filename]["url"],
+                    headers={"Authorization": f"Token {request.headers.get('kobotoken')}"}
+                )
                 print(f"DOWNLOAD STATUS: {response.status_code}", flush=True)
                 file_bytes = response.content
                 print(f"BYTES: {len(file_bytes)}", flush=True)
