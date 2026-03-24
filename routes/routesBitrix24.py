@@ -117,14 +117,13 @@ async def kobo_to_bitrix24(
                 continue
         elif attachment:
             try:
-                filename = kobo_data[kobo_field]
-                logger.info(f"Attachment field value: {filename}")
+                filename = kobo_data[kobo_field].split("/")[-1]
                 attachment_dict = get_attachment_dict(kobo_data)
-                logger.info(f"Attachment dict: {attachment_dict}")
                 if filename not in attachment_dict:
                     logger.warning(f"Attachment '{filename}' not found in attachment_dict")
                     continue
-                file_bytes = get_kobo_attachment(attachment_dict[filename]["url"], "")
+                response = requests.get(attachment_dict[filename]["url"])
+                file_bytes = response.content
                 logger.info(f"Downloaded {len(file_bytes)} bytes for {filename}")
                 kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
             except Exception as e:
