@@ -62,21 +62,25 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
   - Kobo sends datetime values in one of two formats, which require the following formulae
     - format 1: `2026-04-23T20:21:06.502+05:30`
     ```c
-    $raw = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
+    if(string\length(testinputtext) > 24) {
+      $raw = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
 
-    $len  = string\length(testinputtext);
-    $sign = string\substring(testinputtext, $len - 6, 1);
-    $oh   = string\substring(testinputtext, $len - 5, 2) * 1;
-    $om   = string\substring(testinputtext, $len - 2, 2) * 1;
+      $len  = string\length(testinputtext);
+      $sign = string\substring(testinputtext, $len - 6, 1);
+      $oh   = string\substring(testinputtext, $len - 5, 2) * 1;
+      $om   = string\substring(testinputtext, $len - 2, 2) * 1;
       
-    $offset = $oh * 60 + $om;
-    if ($sign == '+') { $offset = -$offset; }
+      $offset = $oh * 60 + $om;
+      if ($sign == '+') { $offset = -$offset; }
       
-    testinput = datetime\addMinutes($raw, $offset);
+      testinput = datetime\addMinutes($raw, $offset);
+    }
     ```
     - format 2: `2026-04-27T10:31:14`
     ```c
-    testinput = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
+    if(string\length(testinputtext) > 18) {
+      testinput = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
+    }
     ```
   - the text field `testinputtext` is a hidden field used to receive the value from Kobo and as input to the datetime calculations
   - use the datetime field `testinput` to show the value in EspoCRM
