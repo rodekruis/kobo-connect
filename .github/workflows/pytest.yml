@@ -17,15 +17,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
     - name: Set up Python 3.11
       uses: actions/setup-python@v3
       with:
         python-version: "3.11"
     - name: Install dependencies
       run: |
-        uv sync --frozen
+        python -m pip install --upgrade pip
+        pip install flake8 pytest poetry
+        poetry config virtualenvs.create false
+        poetry install --no-root
     - name: Set up environment variables
       run: |
         echo "APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" >> $GITHUB_ENV
@@ -38,4 +39,4 @@ jobs:
         echo "TEST_ESPOCRM_KEY=${{ secrets.TEST_ESPOCRM_KEY }}" >> $GITHUB_ENV
     - name: Test with pytest
       run: |
-        uv run pytest
+        pytest
