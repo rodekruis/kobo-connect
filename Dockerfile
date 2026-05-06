@@ -1,6 +1,9 @@
 # python base image in the container from Docker Hub
 FROM python:3.11-slim
 
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # copy files to the /app folder in the container
 ADD clients /app/clients
 ADD mappings /app/mappings
@@ -16,13 +19,11 @@ COPY ./README.md /app/README.md
 WORKDIR /app
 
 # install required packages
-RUN pip install poetry
-RUN poetry config virtualenvs.create false
-RUN poetry install --no-root
+RUN uv sync --frozen --no-dev
 
 # expose the port that uvicorn will run the app on
 ENV PORT=8000
 EXPOSE 8000
 
 # execute the command python main.py (in the WORKDIR) to start the app
-CMD ["python", "main.py"]
+CMD ["uv", "run", "python", "main.py"]
