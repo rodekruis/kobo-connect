@@ -1,48 +1,58 @@
-[tool.poetry]
+[project]
 name = "kobo-connect"
 version = "0.0.2"
-authors = [
-  "Jacopo Margutti <jmargutti@redcross.nl>"
-]
 description = "kobo-connect"
 readme = "README.md"
-repository = "https://github.com/rodekruis/kobo-connect"
-packages = [{include = "clients"}]
+requires-python = ">=3.11,<3.12"
+authors = [
+  {name = "Jacopo Margutti", email = "jmargutti@redcross.nl"}
+]
+dependencies = [
+  "aiohttp>=3.13.3",
+  "aiosignal",
+  "async-timeout",
+  "azure-monitor-opentelemetry-exporter",
+  "azure-core",
+  "azure-storage-blob",
+  "azure-cosmos<4.15.0",
+  "attrs",
+  "certifi",
+  "charset-normalizer",
+  "click",
+  "colorama",
+  "fastapi",
+  "frozenlist",
+  "httpx",
+  "idna",
+  "lxml",
+  "multidict",
+  "pandas",
+  "passlib",
+  "pypdf>=6.4.0",
+  "python-docx",
+  "python-dotenv",
+  "python-jose",
+  "regex",
+  "requests",
+  "tiktoken",
+  "tqdm",
+  "urllib3>=2.6.0",
+  "yarl",
+  "uvicorn",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-aiohttp = ">=3.13.3"
-aiosignal = "*"
-async-timeout = "*"
-azure-monitor-opentelemetry-exporter = "*"
-azure-core = "*"
-azure-storage-blob = "*"
-azure-cosmos = "<4.15.0"
-attrs = "*"
-certifi = "*"
-charset-normalizer = "*"
-click = "*"
-colorama = "*"
-fastapi = "*"
-frozenlist = "*"
-httpx = "*"
-idna = "*"
-lxml = "*"
-multidict = "*"
-pandas = "*"
-passlib = "*"
-pypdf = ">=6.4.0"
-python-docx = "*"
-python-dotenv = "*"
-python-jose = "*"
-regex = "*"
-requests = "*"
-tiktoken = "*"
-tqdm = "*"
-urllib3 = ">=2.6.0"
-yarl = "*"
-uvicorn = "*"
+[dependency-groups]
+dev = [
+  "pytest",
+  "flake8",
+]
+
+[project.urls]
+Repository = "https://github.com/rodekruis/kobo-connect"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["clients", "routes", "utils"]

@@ -12,9 +12,6 @@ on:
 jobs:
   build:
     runs-on: 'ubuntu-latest'
-    defaults:
-      run:
-        working-directory: ./app
 
     steps:
     - uses: actions/checkout@v2
@@ -35,6 +32,7 @@ jobs:
         push: true
         tags: 510emergencies.azurecr.io/kobo-connect-dev:${{ github.sha }}
         file: Dockerfile
+        context: .
 
   deploy:
     runs-on: ubuntu-latest
