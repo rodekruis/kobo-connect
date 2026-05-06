@@ -54,3 +54,33 @@ https://kobo-connect.azurewebsites.net/kobo-to-espocrm
   - Example headers:
     - `pcode`: `Entity.AdminLevel1.pcode`
     - `programCode`: `Entity.program.code`
+- To send **datetime values** add a [datetime field](https://docs.espocrm.com/administration/fields/#date-time) and a [text field](https://docs.espocrm.com/administration/fields/#text) in EspoCRM
+  - the text field accepts the raw timestamp from Kobo without any validation. Example: `testinputtext`
+  - add a header in Kobo to fill the text field. Example: `testinput`: `Entity.testinputtext`
+  - we fill the datetime field based on the text field. Example: `testinput`
+  - add a [API Before-Save Script](https://docs.espocrm.com/administration/api-before-save-script/) in the [Entity Manager](https://docs.espocrm.com/administration/entity-manager/#api-before-save-script)
+  - Kobo sends datetime values in one of two formats, which require the following formulae
+    - format 1: `2026-04-23T20:21:06.502+05:30`
+    ```c
+    if(string\length(testinputtext) > 24) {
+      $raw = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
+
+      $len  = string\length(testinputtext);
+      $sign = string\substring(testinputtext, $len - 6, 1);
+      $oh   = string\substring(testinputtext, $len - 5, 2) * 1;
+      $om   = string\substring(testinputtext, $len - 2, 2) * 1;
+      
+      $offset = $oh * 60 + $om;
+      if ($sign == '+') { $offset = -$offset; }
+      
+      testinput = datetime\addMinutes($raw, $offset);
+    }
+    ```
+    - format 2: `2026-04-27T10:31:14`
+    ```c
+    if(string\length(testinputtext) > 18) {
+      testinput = string\replace(string\substring(testinputtext, 0, 19), 'T', ' ');
+    }
+    ```
+  - the text field `testinputtext` is a hidden field used to receive the value from Kobo and as input to the datetime calculations
+  - use the datetime field `testinput` to show the value in EspoCRM
