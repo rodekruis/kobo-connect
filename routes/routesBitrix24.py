@@ -11,7 +11,7 @@ from clients.bitrix24_api_client import Bitrix24
 import os
 import re
 import base64
-
+import requests
 router = APIRouter()
 
 
@@ -50,27 +50,42 @@ async def kobo_to_bitrix24(
         )
 
     # initialize Bitrix24 API client
-    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"])
+    client = Bitrix24(request.headers["targeturl"], request.headers["targetkey"], request.headers.get("userid", "1"))
 
     # --- Begin SPA logic ---
     payload = {"fields": {}}
 
     # Read entityTypeId from header (required for SPA)
-    if "entitytypeid" in request.headers:
-        payload["entityTypeId"] = int(request.headers["entitytypeid"])
-        target_entity = "crm.item.add.json"
-    else:
+    if "entitytypeid" not in request.headers:
         error_message = "Missing entityTypeId in headers for SPA"
         logger.error(f"Failed: {error_message}", extra=extra_logs)
         update_submission_status(submission, "failed", error_message)
+        raise HTTPException(status_code=422, detail=error_message)
+    
+    payload["entityTypeId"] = int(request.headers["entitytypeid"])
+    
+    operation = kobo_data.get("operation", "add").lower()
+    
+    if operation == "update":
+        record_id = kobo_data.get("id")
+        if not record_id:
+            error_message = "Field 'id' not found in Kobo submission data"
+            logger.error(f"Failed: {error_message}", extra=extra_logs)
+            update_submission_status(submission, "failed", error_message)
+            raise HTTPException(status_code=422, detail=error_message)
+        payload["id"] = int(record_id)
+        target_entity = "crm.item.update"
+    else:
+        target_entity = "crm.item.add.json"
 
     # Loop through headers to map Kobo data to Bitrix24 fields
     for kobo_field, target_field in request.headers.items():
-        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid"]:
+        if kobo_field.lower() in ["targeturl", "targetkey", "entitytypeid", "id", "operation","kobotoken"]:
             continue
 
         multi = False
         repeat, repeat_no, repeat_question = False, 0, ""
+        attachment = False
 
         if "multi:" in kobo_field:
             kobo_field = kobo_field.split(":")[1]
@@ -81,8 +96,11 @@ async def kobo_to_bitrix24(
             repeat_no = int(split[2])
             repeat_question = split[3]
             repeat = True
-
-        if kobo_field not in kobo_data.keys():
+        if "attachment-" in kobo_field:
+            kobo_field = kobo_field.split("-")[1]
+            attachment = True
+        
+        if kobo_field not in kobo_data.keys():  # <-- now runs AFTER prefix is stripped
             continue
 
         if multi:
@@ -96,6 +114,27 @@ async def kobo_to_bitrix24(
                     continue
                 kobo_value = kobo_data[kobo_field][repeat_no][repeat_question]
             else:
+                continue
+        elif attachment:
+            try:
+                print(f"RAW FIELD VALUE: {kobo_data[kobo_field]}", flush=True)
+                filename = kobo_data[kobo_field].split("/")[-1]
+                print(f"FILENAME: {filename}", flush=True)
+                attachment_dict = get_attachment_dict(kobo_data)
+                print(f"ATTACHMENT DICT KEYS: {list(attachment_dict.keys())}", flush=True)
+                if filename not in attachment_dict:
+                    print(f"ATTACHMENT NOT FOUND: {filename}", flush=True)
+                    continue
+                response = requests.get(
+                    attachment_dict[filename]["url"],
+                    headers={"Authorization": f"Token {request.headers.get('kobotoken')}"}
+                )
+                print(f"DOWNLOAD STATUS: {response.status_code}", flush=True)
+                file_bytes = response.content
+                print(f"BYTES: {len(file_bytes)}", flush=True)
+                kobo_value = [filename, base64.b64encode(file_bytes).decode("utf-8")]
+            except Exception as e:
+                print(f"ATTACHMENT ERROR: {e}", flush=True)
                 continue
         else:
             kobo_value = kobo_data[kobo_field]

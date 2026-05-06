@@ -8,10 +8,10 @@ import requests
 class Bitrix24:
     """A client for interacting with the Bitrix24 API."""
 
-    def __init__(self, url, key):
+    def __init__(self, url, key, user_id="1"):
         if url.endswith("/"):
             url = url[:-1]
-        self.url = url + "/rest/3060/" + key + "/"
+        self.url = url + "/rest/" + user_id + "/" + key + "/"
 
     def request(self, method, endpoint, payload=None, params=None, logs=None):
         """Make a request to Bitrix24. If the request fails, update submission status in CosmosDB."""
