@@ -19,7 +19,7 @@ API Specification: https://kobo-connect.azurewebsites.net/docs
 ## Run locally
 
 ```
-pip install poetry
-poetry install --no-root
-uvicorn main:app --reload
+pip install uv
+uv sync
+uv run uvicorn main:app --reload
 ```

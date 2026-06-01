@@ -40,9 +40,7 @@ def add_submission(kobo_data):
 
 
 def update_submission_status(submission, status, error_message=None):
-    """Update submission status in CosmosDB. If error_message is not none, raise HTTPException."""
+    """Update submission status in CosmosDB."""
     submission["status"] = status
     submission["error_message"] = error_message
     cosmos_container_client.replace_item(item=str(submission["id"]), body=submission)
-    if status == "failed":
-        raise HTTPException(status_code=400, detail=error_message)
