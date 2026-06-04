@@ -8,7 +8,7 @@ authors = [
   {name = "Jacopo Margutti", email = "jmargutti@redcross.nl"}
 ]
 dependencies = [
-  "aiohttp>=3.13.3",
+  "aiohttp>=3.14.0",
   "aiosignal",
   "async-timeout",
   "azure-monitor-opentelemetry-exporter",
