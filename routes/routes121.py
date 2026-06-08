@@ -236,6 +236,14 @@ async def kobo_update_121(
                 target_response = response.content.decode("utf-8")
                 logger.info(target_response)
 
+    # Check if 'skipvalidation' is present and set to True in kobo_data
+    if "skipvalidation" in kobo_data.keys() and kobo_data["skipvalidation"] == "1":
+        logger.info("Skipping validation status update", extra=extra_logs)
+        update_response_message = response.content.decode("utf-8")
+        return JSONResponse(
+            status_code=response.status_code, content=update_response_message
+        )
+
     status_response = requests.patch(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/status?dryRun=false&filter.referenceId=$in:{referenceId}",
         headers={"Cookie": f"access_token_general={access_token}"},
