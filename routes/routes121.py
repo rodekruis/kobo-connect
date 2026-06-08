@@ -239,9 +239,8 @@ async def kobo_update_121(
     # Check if 'skipvalidation' is present and set to True in kobo_data
     if "skipvalidation" in kobo_data.keys() and kobo_data["skipvalidation"] == "1":
         logger.info("Skipping validation status update", extra=extra_logs)
-        update_response_message = response.content.decode("utf-8")
         return JSONResponse(
-            status_code=response.status_code, content=update_response_message
+            status_code=200, content={"message": "Skipping validation status update"}
         )
 
     status_response = requests.patch(
