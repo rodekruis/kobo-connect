@@ -73,14 +73,17 @@ To link the new record with another pre-existing record in EspoCRM:
 
 1. Ensure that the API user has read-access to the related entity.
 2. Under the header name, insert the name of the Kobo question, as usual.
-3. Under the header value, insert the entity name, followed by a dot (`.`), followed by the field name of type `Link` (the one containing the related entity record), followed by a dot (`.`), followed by the field name of the related entity used to look up the matching record.
+3. Under the header value, insert the entity name, followed by a dot (`.`), followed by the field name of type `Link` (the one containing the related entity record), followed by a dot (`.`), followed by the field name of the related entity used to look up the matching record. The name of the related entity is inferred from the link field name (e.g., if the link field name is `adminLevel1`, the related entity name is `AdminLevel1` ).
 
 Example headers:
-- `pcode`: `Entity.AdminLevel1.pcode`
-- `programCode`: `Entity.program.code`
+- `pcode`: `Entity.adminLevel1.pcode`
+- `programCode`: `Entity.program.programCode`
 
-> [!NOTE]
-> For custom EspoCRM entities, the entity name is automatically tried with a `C` prefix if the initial lookup fails (e.g. if the link field is `codingLevel1`, it tries `CodingLevel1` first, then `CCodingLevel1`).
+If the related entity name is different from the link name - shame on you! - you can specify it right after the first entity name, and before the field link name. So under the header value, insert the entity name, followed by a dot (`.`), followed by the related entity name, followed by a dot (`.`), followed by the field name of type `Link` (the one containing the related entity record), followed by a dot (`.`), followed by the field name of the related entity used to look up the matching record.
+
+Example headers:
+- `pcode`: `Entity.AdminLevel1.adminLevel1Link.pcode`
+- `programCode`: `Entity.Program.programLink.programCode`
 
 #### Datetime values
 

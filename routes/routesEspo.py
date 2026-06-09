@@ -115,7 +115,11 @@ def parse_target_field(
       'name' equals the Kobo value, then link it via 'codingLevel1Id' on 'CFeedbackData'.
       The related entity name is derived by capitalizing the first letter of linkedField.
 
-    Returns a TargetField or None if the format is unrecognized (e.g. 1 or 4+ parts).
+    - "Entity.linkedEntity.linkedField.lookupField" (4 parts): related entity lookup.
+      Example: "CFeedbackData.CodingLevel1.codingLevelLink.name" → find a 'CodingLevel1' record where
+      'name' equals the Kobo value, then link it via 'codingLevelLink' on 'CFeedbackData'.
+
+    Returns a TargetField or None if the format is unrecognized (e.g. 1 or 5+ parts).
     """
     parts = target_field.split(".")
 
@@ -139,6 +143,15 @@ def parse_target_field(
             linked_field=linked_field,
             related_entity=related_entity,
             related_entity_field=parts[2],
+        )
+    if len(parts) == 4:
+        return TargetField(
+            entity=parts[0],
+            field=target_field,
+            related=True,
+            linked_field=parts[2],
+            related_entity=parts[1],
+            related_entity_field=parts[3],
         )
 
     return None
@@ -179,9 +192,6 @@ def resolve_related_entity(
 ) -> RelatedEntityResult:
     """Look up a related entity record in EspoCRM by field value.
 
-    EspoCRM custom entities are prefixed with 'C' (e.g. CodingLevel1 → CCodingLevel1).
-    If the initial lookup fails, retries with the 'C' prefix automatically.
-
     Returns a RelatedEntityResult:
     - On success: record_id is set, error is None.
     - Entity not found: entity_name is None, error describes the failure.
@@ -198,25 +208,11 @@ def resolve_related_entity(
         client, "GET", related_entity, params=params, logs=extra_logs
     )
 
-    # Retry with "C" prefix for EspoCRM custom entities
-    if response is None:
-        related_entity_c = "C" + related_entity
-        logger.info(
-            f"Entity '{related_entity}' not found, retrying with '{related_entity_c}'",
-            extra=extra_logs,
-        )
-        response = espo_request(
-            client, "GET", related_entity_c, params=params, logs=extra_logs
-        )
-        if response is not None:
-            related_entity = related_entity_c
-
     if response is None:
         return RelatedEntityResult(
             record_id=None,
             entity_name=None,
-            error=f"Related entity '{related_entity}' does not exist in EspoCRM "
-            f"(also tried 'C{related_entity}')",
+            error=f"Related entity '{related_entity}' does not exist in EspoCRM",
         )
 
     records = response["list"]
@@ -296,7 +292,8 @@ async def kobo_to_espocrm(
     The mapping between Kobo fields and EspoCRM entities/fields is defined via
     HTTP headers on the request. Each header key is a Kobo field name (optionally
     prefixed with ``multi.`` or ``repeat.``) and the value is a dot-separated
-    EspoCRM target (e.g. ``Entity.field`` or ``Entity.linkedField.lookupField``).
+    EspoCRM target (e.g. ``Entity.field`` or ``Entity.linkedField.lookupField`` 
+    or ``Entity.linkedEntity.linkedField.lookupField``).
 
     Special headers:
         targeturl / targetkey: EspoCRM instance URL and API key.
