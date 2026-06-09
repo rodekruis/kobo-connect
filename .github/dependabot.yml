@@ -8,15 +8,18 @@ updates:
     cooldown:
       default-days: 7
     target-branch: "dev"
+    open-pull-requests-limit: 2
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    open-pull-requests-limit: 2
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    open-pull-requests-limit: 2
