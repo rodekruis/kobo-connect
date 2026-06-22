@@ -28,7 +28,7 @@ dependencies = [
   "multidict",
   "pandas",
   "passlib",
-  "pypdf>=6.4.0",
+  "pypdf>=6.13.3",
   "python-docx",
   "python-dotenv",
   "python-jose",
