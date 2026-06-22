@@ -8,7 +8,7 @@ Built to support Red Cross Red Crescent National Societies.
 
 Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that sends Kobo submissions and their attachments to other API-enabled applications, changing field names if necessary. It is basically an extension of the [KoboToolbox REST Services](https://support.kobotoolbox.org/rest_services.html).
 
-Documentation:
+Integrations:
 * [Kobo](docs/Kobo.md)
 * [EspoCRM](docs/EspoCRM.md)
 * [121](docs/121.md)
