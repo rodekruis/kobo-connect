@@ -3,6 +3,7 @@ import os
 import json
 from fastapi.testclient import TestClient
 from dotenv import load_dotenv
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -12,8 +13,14 @@ client = TestClient(app)
 
 # load environment variables
 load_dotenv()
-kobotoken = os.environ["TEST_KOBO_TOKEN"]
-koboassetid = os.environ["TEST_KOBO_ASSETID"]
+kobotoken = os.getenv("TEST_KOBO_TOKEN")
+koboassetid = os.getenv("TEST_KOBO_ASSETID")
+
+if not kobotoken or not koboassetid:
+    pytest.skip(
+        "TEST_KOBO_TOKEN and TEST_KOBO_ASSETID are required",
+        allow_module_level=True,
+    )
 
 with open(os.path.join(os.path.dirname(__file__), "program121.json"), "r") as file:
     program121 = json.load(file)
