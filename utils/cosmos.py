@@ -7,15 +7,32 @@ from fastapi import HTTPException
 # load environment variables
 load_dotenv()
 
-# initialize CosmosDB
-client_ = cosmos_client.CosmosClient(
-    os.getenv("COSMOS_URL"),
-    {"masterKey": os.getenv("COSMOS_KEY")},
-    user_agent="kobo-connect",
-    user_agent_overwrite=True,
-)
-cosmos_db = client_.get_database_client("kobo-connect")
-cosmos_container_client = cosmos_db.get_container_client("kobo-submissions")
+cosmos_container_client = None
+
+
+def get_cosmos_container_client():
+    """Get the configured CosmosDB container client."""
+    global cosmos_container_client
+
+    if cosmos_container_client is None:
+        cosmos_url = os.getenv("COSMOS_URL")
+        cosmos_key = os.getenv("COSMOS_KEY")
+        if not cosmos_url or not cosmos_key:
+            raise HTTPException(
+                status_code=500,
+                detail="CosmosDB is not configured.",
+            )
+
+        client_ = cosmos_client.CosmosClient(
+            cosmos_url,
+            {"masterKey": cosmos_key},
+            user_agent="kobo-connect",
+            user_agent_overwrite=True,
+        )
+        cosmos_db = client_.get_database_client("kobo-connect")
+        cosmos_container_client = cosmos_db.get_container_client("kobo-submissions")
+
+    return cosmos_container_client
 
 
 def add_submission(kobo_data):
@@ -25,6 +42,7 @@ def add_submission(kobo_data):
         "uuid": str(kobo_data["formhub/uuid"]),
         "status": "pending",
     }
+    cosmos_container_client = get_cosmos_container_client()
     try:
         submission = cosmos_container_client.create_item(body=submission)
     except CosmosResourceExistsError:
@@ -43,4 +61,5 @@ def update_submission_status(submission, status, error_message=None):
     """Update submission status in CosmosDB."""
     submission["status"] = status
     submission["error_message"] = error_message
+    cosmos_container_client = get_cosmos_container_client()
     cosmos_container_client.replace_item(item=str(submission["id"]), body=submission)

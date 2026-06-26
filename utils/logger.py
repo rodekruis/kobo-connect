@@ -12,10 +12,12 @@ load_dotenv()
 # Set up logs export to Azure Application Insights
 logger_provider = LoggerProvider()
 set_logger_provider(logger_provider)
-exporter = AzureMonitorLogExporter(
-    connection_string=os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+connection_string = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "").strip()
+if connection_string:
+    exporter = AzureMonitorLogExporter(
+        connection_string=connection_string
+    )
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
 
 # Attach LoggingHandler to root logger
 handler = LoggingHandler()
