@@ -14,7 +14,7 @@ dependencies = [
   "azure-monitor-opentelemetry-exporter",
   "azure-core",
   "azure-storage-blob",
-  "azure-cosmos<4.15.0",
+  "azure-cosmos<4.17.0",
   "attrs",
   "certifi",
   "charset-normalizer",
