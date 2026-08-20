@@ -3,6 +3,7 @@ import os
 import json
 from fastapi.testclient import TestClient
 from dotenv import load_dotenv
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -18,8 +19,17 @@ with open(
 ) as file:
     kobo_headers = json.load(file)
 load_dotenv()
-kobo_headers["targeturl"] = os.environ["TEST_ESPOCRM_URL"]
-kobo_headers["targetkey"] = os.environ["TEST_ESPOCRM_KEY"]
+target_url = os.getenv("TEST_ESPOCRM_URL")
+target_key = os.getenv("TEST_ESPOCRM_KEY")
+
+if not target_url or not target_key:
+    pytest.skip(
+        "TEST_ESPOCRM_URL and TEST_ESPOCRM_KEY are required",
+        allow_module_level=True,
+    )
+
+kobo_headers["targeturl"] = target_url
+kobo_headers["targetkey"] = target_key
 
 
 def test_kobo_to_espo_payload():
