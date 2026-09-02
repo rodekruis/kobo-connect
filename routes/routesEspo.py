@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from utils.cosmos import add_submission, update_submission_status
 from utils.utilsKobo import (
+    KoboAttachmentError,
     clean_kobo_data,
     get_attachment_dict,
     get_kobo_attachment,

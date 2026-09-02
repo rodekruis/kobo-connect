@@ -34,7 +34,7 @@ def get_kobo_attachment(url: str, kobo_token: str) -> bytes:
         else:
             if data_request.status_code == 200:
                 data = data_request.content
-                if sys.getsizeof(data) > 1000:
+                if len(data) > 1000:
                     return data
                 logger.warning(f"Kobo attachment is not ready or is too small for {url}")
             else:

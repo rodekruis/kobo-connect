@@ -35,7 +35,11 @@ async def kobo_to_generic(request: Request):
                         detail=f"'kobotoken' needs to be specified in headers to upload attachments",
                     )
                 # encode attachment in base64
-                file = get_kobo_attachment(file_url, request.headers["kobotoken"])
+                try:
+                    file = get_kobo_attachment(file_url, request.headers["kobotoken"])
+                except KoboAttachmentError as error:
+                    raise HTTPException(status_code=504, detail=str(error)) from error
+
                 file_b64 = base64.b64encode(file).decode("utf8")
                 payload[target_field] = (
                     f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"
