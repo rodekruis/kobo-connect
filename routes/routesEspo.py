@@ -252,7 +252,6 @@ def upload_attachment(
         )
 
     logger.info(f"Getting attachment of field: {kobo_field}", extra=extra_logs)
-    
     try:
         file = get_kobo_attachment(file_url, kobotoken)
     except KoboAttachmentError:
