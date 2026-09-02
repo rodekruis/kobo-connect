@@ -1,11 +1,12 @@
 import requests
 import time
 from fastapi import Header
-import sys
 from utils.logger import logger
+
 
 class KoboAttachmentError(RuntimeError):
     """Raised when a Kobo attachment cannot be retrieved."""
+
 
 def required_headers_kobo(kobotoken: str = Header(), koboasset: str = Header()):
     return kobotoken, koboasset
@@ -46,6 +47,7 @@ def get_kobo_attachment(url: str, kobo_token: str) -> bytes:
             time.sleep(10)
 
     raise KoboAttachmentError(f"Kobo attachment could not be retrieved before deadline: {url}")
+
 
 def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""

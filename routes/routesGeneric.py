@@ -38,7 +38,10 @@ async def kobo_to_generic(request: Request):
                 try:
                     file = get_kobo_attachment(file_url, request.headers["kobotoken"])
                 except KoboAttachmentError as error:
-                    raise HTTPException(status_code=504, detail=str(error)) from error
+                    raise HTTPException(
+                        status_code=504, 
+                        detail=f"Attachment retrieval failed for field: {kobo_field}",
+                        ) from error
 
                 file_b64 = base64.b64encode(file).decode("utf8")
                 payload[target_field] = (
