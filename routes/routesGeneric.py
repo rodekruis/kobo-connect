@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from utils.utilsKobo import clean_kobo_data, get_attachment_dict
+import base64
+from utils.utilsKobo import (
+    KoboAttachmentError,
+    clean_kobo_data,
+    get_attachment_dict,
+    get_kobo_attachment,
+)
 import requests
 
 router = APIRouter()
@@ -29,7 +35,14 @@ async def kobo_to_generic(request: Request):
                         detail=f"'kobotoken' needs to be specified in headers to upload attachments",
                     )
                 # encode attachment in base64
-                file = get_kobo_attachment(file_url, request.headers["kobotoken"])
+                try:
+                    file = get_kobo_attachment(file_url, request.headers["kobotoken"])
+                except KoboAttachmentError as error:
+                    raise HTTPException(
+                        status_code=504,
+                        detail=f"Attachment retrieval failed for field: {kobo_field}"
+                    ) from error
+
                 file_b64 = base64.b64encode(file).decode("utf8")
                 payload[target_field] = (
                     f"data:{attachments[kobo_value]['mimetype']};base64,{file_b64}"

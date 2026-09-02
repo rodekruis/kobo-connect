@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from utils.cosmos import add_submission, update_submission_status
 from utils.utilsKobo import (
+    KoboAttachmentError,
     clean_kobo_data,
     get_attachment_dict,
     get_kobo_attachment,
@@ -251,9 +252,9 @@ def upload_attachment(
         )
 
     logger.info(f"Getting attachment of field: {kobo_field}", extra=extra_logs)
-    file = get_kobo_attachment(file_url, kobotoken)
-
-    if not file:
+    try:
+        file = get_kobo_attachment(file_url, kobotoken)
+    except KoboAttachmentError:
         return None, f"Attachment retrieval failed for field: {kobo_field}"
 
     logger.info(

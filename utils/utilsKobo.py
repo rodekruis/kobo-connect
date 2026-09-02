@@ -1,8 +1,11 @@
 import requests
 import time
 from fastapi import Header
-import sys
 from utils.logger import logger
+
+
+class KoboAttachmentError(RuntimeError):
+    """Raised when a Kobo attachment cannot be retrieved."""
 
 
 def required_headers_kobo(kobotoken: str = Header(), koboasset: str = Header()):
@@ -19,17 +22,31 @@ def required_headers_121_kobo(
     return url121, username121, password121, kobotoken, koboasset
 
 
-def get_kobo_attachment(URL, kobo_token):
+def get_kobo_attachment(url: str, kobo_token: str) -> bytes:
     """Get attachment from kobo"""
     headers = {"Authorization": f"Token {kobo_token}"}
-    timeout = time.time() + 60  # 1 minute from now
-    while True:
-        data_request = requests.get(URL, headers=headers)
-        data = data_request.content
-        if sys.getsizeof(data) > 1000 or time.time() > timeout:
-            break
-        time.sleep(10)
-    return data
+    deadline = time.time() + 60
+
+    while time.time() <= deadline:
+        try:
+            data_request = requests.get(url, headers=headers, timeout=(10, 60))
+        except requests.exceptions.RequestException as error:
+            logger.error(f"Kobo attachment request failed for {url}: {error}")
+        else:
+            if data_request.status_code == 200:
+                data = data_request.content
+                if len(data) > 1000:
+                    return data
+                logger.warning(f"Kobo attachment is not ready or is too small for {url}")
+            else:
+                logger.error(
+                    f"Kobo attachment fetch failed: {data_request.status_code} for {url}"
+                )
+
+        if time.time() <= deadline:
+            time.sleep(10)
+
+    raise KoboAttachmentError(f"Kobo attachment could not be retrieved before deadline: {url}")
 
 
 def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
@@ -73,10 +90,7 @@ def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
             for attachment in attachments_list:
                 try:
                     filename = attachment["filename"].split("/")[-1]
-                    downloadurl = (
-                        "https://kc.ifrc.org/media/original?media_file="
-                        + attachment["filename"]
-                    )
+                    downloadurl = attachment["download_url"]
                     mimetype = attachment["mimetype"]
                     attachments[filename] = {"url": downloadurl, "mimetype": mimetype}
                 except KeyError as e:
