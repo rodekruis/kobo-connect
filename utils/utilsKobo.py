@@ -4,6 +4,8 @@ from fastapi import Header
 import sys
 from utils.logger import logger
 
+class KoboAttachmentError(RuntimeError):
+    """Raised when a Kobo attachment cannot be retrieved."""
 
 def required_headers_kobo(kobotoken: str = Header(), koboasset: str = Header()):
     return kobotoken, koboasset
@@ -19,32 +21,31 @@ def required_headers_121_kobo(
     return url121, username121, password121, kobotoken, koboasset
 
 
-def get_kobo_attachment(URL, kobo_token):
+def get_kobo_attachment(url: str, kobo_token: str) -> bytes:
     """Get attachment from kobo"""
     headers = {"Authorization": f"Token {kobo_token}"}
     deadline = time.time() + 60
 
     while time.time() <= deadline:
         try:
-            data_request = requests.get(URL, headers=headers, timeout=(10, 30))
+            data_request = requests.get(url, headers=headers, timeout=(10, 60))
         except requests.exceptions.RequestException as error:
-            logger.error(f"Kobo attachment request failed for {URL}: {error}")
+            logger.error(f"Kobo attachment request failed for {url}: {error}")
         else:
             if data_request.status_code == 200:
                 data = data_request.content
                 if sys.getsizeof(data) > 1000:
                     return data
-                logger.warning(f"Kobo attachment is not ready or is too small for {URL}")
+                logger.warning(f"Kobo attachment is not ready or is too small for {url}")
             else:
                 logger.error(
-                    f"Kobo attachment fetch failed: {data_request.status_code} for {URL}"
+                    f"Kobo attachment fetch failed: {data_request.status_code} for {url}"
                 )
 
         if time.time() <= deadline:
             time.sleep(10)
 
-    return None
-
+    raise KoboAttachmentError(f"Kobo attachment could not be retrieved before deadline: {url}")
 
 def get_attachment_dict(kobo_data, kobotoken=None, koboasset=None):
     """Create a dictionary that maps the attachment filenames to their URL."""

@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from utils.utilsKobo import clean_kobo_data, get_attachment_dict
+import base64
+from utils.utilsKobo import (
+    KoboAttachmentError,
+    clean_kobo_data,
+    get_attachment_dict,
+    get_kobo_attachment,
+)
 import requests
 
 router = APIRouter()
