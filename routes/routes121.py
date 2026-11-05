@@ -27,7 +27,8 @@ async def kobo_to_121(
     dependencies=Depends(required_headers_121),
     test_mode: bool = False,
 ):
-    """Send a Kobo submission to 121."""
+    """Send a Kobo submission to 121.
+    Set skipconnect to 1 in the Kobo form to skip sending the submission to 121."""
 
     kobo_data = await request.json()
     extra_logs = {"environment": os.getenv("ENV")}
@@ -162,7 +163,9 @@ async def kobo_update_121(
     dependencies=Depends(required_headers_121),
     test_mode: bool = False,
 ):
-    """Update a 121 record from a Kobo submission"""
+    """Update a 121 record from a Kobo submission
+    Set skipstatusupdate to 1 in the Kobo form to skip updating the status in 121.
+    Set newstatus to the desired status value in the Kobo form to update the status in 121 ('validated' or 'included'). Make sure that the user has the necessary permissions to update the status to that specific status in 121."""
 
     kobo_data = await request.json()
     extra_logs = {"environment": os.getenv("ENV")}
@@ -203,7 +206,7 @@ async def kobo_update_121(
     intvalues = ["maxPayments", "paymentAmountMultiplier", "inclusionScore"]
 
     for kobo_field, target_field in request.headers.items():
-        payload = {"data": {}, "reason": "Validated during field validation"}
+        payload = {"data": {}, "reason": "Updated with offline Kobo form"}
         if kobo_field in kobo_data.keys():
             kobo_value_url = kobo_data[kobo_field].replace(" ", "_")
             kobo_value_url = re.sub(r"[(,),']", "", kobo_value_url)
@@ -236,23 +239,33 @@ async def kobo_update_121(
                 target_response = response.content.decode("utf-8")
                 logger.info(target_response)
 
-    # Check if 'skipvalidation' is present and set to True in kobo_data
-    if "skipvalidation" in kobo_data.keys() and kobo_data["skipvalidation"] == "1":
-        logger.info("Skipping validation status update", extra=extra_logs)
+    # Check if 'skipstatusupdate' is present and set to True in kobo_data
+    if "skipstatusupdate" in kobo_data.keys() and kobo_data["skipstatusupdate"] == "1":
+        print("Skipping status update")
+        logger.info("Skipping status update", extra=extra_logs)
         return JSONResponse(
-            status_code=200, content={"message": "Skipping validation status update"}
+            status_code=200, content={"message": "Skipping status update"}
         )
 
+    # Check to which status the registration should be updated
+    if "newstatus" in kobo_data.keys():
+        newStatus = kobo_data["newstatus"]
+    # Update the status by default to validated, as this was the original behavior
+    else:
+        newStatus = "validated"
+
+    # Update the status of the registration
+    # Only to "validated" or "included", if to "paused" or "declined", it would also need a reason, so rewrite code accordingly.
     status_response = requests.patch(
         f"{request.headers['url121']}/api/programs/{programid}/registrations/status?dryRun=false&filter.referenceId=$in:{referenceId}",
         headers={"Cookie": f"access_token_general={access_token}"},
-        json={"status": "validated"},
+        json={"status": newStatus},
     )
 
     if status_response.status_code != 202:
         raise HTTPException(
             status_code=response.status_code,
-            detail="Failed to set status of PA to validated",
+            detail=f"Failed to set status of PA to {newStatus}",
         )
 
     update_response_message = status_response.content.decode("utf-8")
