@@ -247,7 +247,7 @@ async def kobo_update_121(
         )
 
     # Check to which status the registration should be updated
-    if "newstatus" in kobo_data.keys():
+    if "newstatus" in kobo_data.keys() and kobo_data["newstatus"] in ["validated", "included"]:
         newStatus = kobo_data["newstatus"]
     # Update the status by default to validated, as this was the original behavior
     else:
