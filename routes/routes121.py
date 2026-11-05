@@ -241,7 +241,6 @@ async def kobo_update_121(
 
     # Check if 'skipstatusupdate' is present and set to True in kobo_data
     if "skipstatusupdate" in kobo_data.keys() and kobo_data["skipstatusupdate"] == "1":
-        print("Skipping status update")
         logger.info("Skipping status update", extra=extra_logs)
         return JSONResponse(
             status_code=200, content={"message": "Skipping status update"}
