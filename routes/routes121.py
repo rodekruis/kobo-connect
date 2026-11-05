@@ -263,7 +263,7 @@ async def kobo_update_121(
 
     if status_response.status_code != 202:
         raise HTTPException(
-            status_code=response.status_code,
+            status_code=status_response.status_code,
             detail=f"Failed to set status of PA to {newStatus}",
         )
 
