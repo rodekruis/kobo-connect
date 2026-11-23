@@ -33,7 +33,7 @@ def test_kobo_to_121_payload():
     assert response_data == {
         "payload": {
             "data": {"bankaccountnumber": "12345678"},
-            "reason": "Validated during field validation",
+            "reason": "Updated with offline Kobo form",
         }
     }
 
@@ -49,14 +49,14 @@ def test_kobo_update_121_skip_validation(mock_patch, mock_login):
     mock_response.content = b'{"message": "updated"}'
 
     kobo_data_with_skip = kobo_data.copy()
-    kobo_data_with_skip["skipvalidation"] = "1"
+    kobo_data_with_skip["skipstatusupdate"] = "1"
 
     response = client.post(
         "/kobo-update-121", headers=kobo_headers, json=kobo_data_with_skip
     )
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Skipping validation status update"}
+    assert response.json() == {"message": "Skipping status update"}
 
     # Verify status endpoint was never called
     for call in mock_patch.call_args_list:
